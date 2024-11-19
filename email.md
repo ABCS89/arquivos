@@ -15,7 +15,7 @@ Conforme solicitado, envio em anexo a ficha financeira de
 # caminho faturas AWS cloudshell
 
 fatura_139355_abril.pdf
-/home/cloudshell-user/faturas/faturas_totais/fatura_221058_agosto.pdf
+/home/cloudshell-user/faturas/faturas_totais/fatura_213004_outubro.pdf
 /home/cloudshell-user/faturas/fatura_110587.pdf
 /home/cloudshell-user/devops.pub
 
