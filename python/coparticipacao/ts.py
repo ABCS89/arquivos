@@ -1,3 +1,33 @@
+import os
+import pandas as pd
+from reportlab.lib.pagesizes import landscape, A4
+from reportlab.lib import colors
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph
+from reportlab.pdfgen import canvas
+
+def list_sheets(file_path):
+    xls = pd.ExcelFile(file_path)
+    return xls.sheet_names
+
+def read_ods(file_path, table_name):
+    return pd.read_excel(file_path, sheet_name=table_name)
+
+def get_month_name(month_number):
+    month_map = {
+        1: "Janeiro", 2: "Fevereiro", 3: "Março", 4: "Abril",
+        5: "Maio", 6: "Junho", 7: "Julho", 8: "Agosto",
+        9: "Setembro", 10: "Outubro", 11: "Novembro", 12: "Dezembro"
+    }
+    return month_map.get(month_number, "Mês inválido")
+
+def add_footer(canvas, doc):
+    canvas.saveState()
+    footer_text = "Criado por André Bueno (DRH)"
+    canvas.setFont('Helvetica', 9)
+    canvas.drawString(30, 20, footer_text)
+    canvas.restoreState()
+
 def generate_pdf(df, nr_funcional, output_pdf):
     nr_funcional = str(int(float(nr_funcional)))
     df['NR_FUNCIONAL'] = df['NR_FUNCIONAL'].fillna('').astype(str).str.strip()
@@ -82,3 +112,85 @@ def generate_pdf(df, nr_funcional, output_pdf):
     doc.build(elements, onFirstPage=add_footer, onLaterPages=add_footer)
     print(f"PDF generated: {output_pdf}")
 
+def generate_pdfs_for_all_functionals(df, output_dir, mes):
+    os.makedirs(output_dir, exist_ok=True)
+    unique_funcionals = df['NR_FUNCIONAL'].unique()
+
+    for nr_funcional in unique_funcionals:
+        if pd.isna(nr_funcional) or str(nr_funcional).strip() == '':
+            continue
+        output_pdf = os.path.join(output_dir, f"fatura_{str(int(float(nr_funcional)))}_{mes}.pdf")
+        generate_pdf(df, nr_funcional, output_pdf)
+
+# Main script
+meses = ["janeiro", "fevereiro", "marco", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"]
+
+# Solicita o mês ao usuário
+mes_escolhido = input("Digite o mês desejado ou 'total' para todos os meses: ").strip().lower()
+
+# Verifica se a entrada é válida
+if mes_escolhido not in meses and mes_escolhido != 'total':
+    print("Mês inválido. Por favor, digite um mês válido ou 'total'.")
+    exit()
+
+# Procurando arquivos que contém o mês no nome ou todos os meses
+ods_files = [f for f in os.listdir('.') if os.path.isfile(f) and f.startswith('fatura_coparticipacao_') and f.endswith('.ods')]
+
+if mes_escolhido == 'total':
+    nr_funcional = input("Enter NR_FUNCIONAL ou 'total' para todos os funcionais: ").strip().lower()
+    if nr_funcional == 'total':
+        output_dir = './faturas_totais'
+        for mes in meses:
+            for f in ods_files:
+                if mes in f.lower():
+                    ods_path = f
+                    print(f"Arquivo ODS encontrado: {ods_path}")
+                    sheet_names = list_sheets(ods_path)
+                    table_name = sheet_names[0]  # Supondo que a tabela desejada é a primeira
+                    df = read_ods(ods_path, table_name)
+                    print(f"Primeiras linhas da tabela '{table_name}' lida:")
+                    print(df.head())
+                    generate_pdfs_for_all_functionals(df, output_dir, mes)
+    else:
+        output_dir = './faturas_totais'
+        os.makedirs(output_dir, exist_ok=True)
+        for mes in meses:
+            for f in ods_files:
+                if mes in f.lower():
+                    ods_path = f
+                    print(f"Arquivo ODS encontrado: {ods_path}")
+                    sheet_names = list_sheets(ods_path)
+                    table_name = sheet_names[0]  # Supondo que a tabela desejada é a primeira
+                    df = read_ods(ods_path, table_name)
+                    print(f"Primeiras linhas da tabela '{table_name}' lida:")
+                    print(df.head())
+                    output_pdf = os.path.join(output_dir, f"fatura_{nr_funcional}_{mes}.pdf")
+                    generate_pdf(df, nr_funcional, output_pdf)
+else:
+    ods_path = None
+    for f in ods_files:
+        if mes_escolhido in f.lower():
+            ods_path = f
+            break
+
+    if ods_path:
+        print(f"Arquivo ODS encontrado: {ods_path}")
+        sheet_names = list_sheets(ods_path)
+        print("Tabelas disponíveis no arquivo ODS:")
+        for name in sheet_names:
+            print(name)
+
+        table_name = sheet_names[0]  # Supondo que a tabela desejada é a primeira
+        df = read_ods(ods_path, table_name)
+        print("Primeiras linhas da tabela lida:")
+        print(df.head())
+
+        nr_funcional = input("Enter NR_FUNCIONAL ou 'total' para todos os funcionais: ").strip().lower()
+        if nr_funcional == 'total':
+            output_dir = './faturas_totais'
+            generate_pdfs_for_all_functionals(df, output_dir, mes_escolhido)
+        else:
+            output_pdf = f"fatura_{nr_funcional}.pdf"
+            generate_pdf(df, nr_funcional, output_pdf)
+    else:
+        print(f"Nenhum arquivo ODS encontrado com o padrão 'fatura_coparticipacao_{mes_escolhido}.ods'.")

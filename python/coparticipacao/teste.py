@@ -10,8 +10,8 @@ def list_sheets(file_path):
     xls = pd.ExcelFile(file_path, engine='odf')
     return xls.sheet_names
 
-def read_ods(file_path, table_name):
-    return pd.read_excel(file_path, sheet_name=table_name, engine='odf')
+def read_csv(file_path):
+    return pd.read_csv(file_path, sep=';')  # Ajuste o separador se necessário
 
 def get_month_name(month_number):
     month_map = {
@@ -119,13 +119,7 @@ def generate_pdfs_for_all_functionals(df, output_dir, mes):
     for nr_funcional in unique_funcionals:
         if pd.isna(nr_funcional) or str(nr_funcional).strip() == '':
             continue
-
-# Usar o nome do mês a partir da entrada do usuário
-        if mes in meses:  # Verifica se o mês está na lista de meses
-            output_pdf = os.path.join(output_dir, f"fatura_{str(int(float(nr_funcional)))}_{mes}.pdf")
-        else:  # Se 'total', você pode deixar o nome como está
-            output_pdf = os.path.join(output_dir, f"fatura_{str(int(float(nr_funcional)))}_total.pdf")
-        
+        output_pdf = os.path.join(output_dir, f"fatura_{str(int(float(nr_funcional)))}_{mes}.pdf")
         generate_pdf(df, nr_funcional, output_pdf)
 
 # Main script
@@ -140,7 +134,7 @@ if mes_escolhido not in meses and mes_escolhido != 'total':
     exit()
 
 # Procurando arquivos que contém o mês no nome ou todos os meses
-ods_files = [f for f in os.listdir('.') if os.path.isfile(f) and f.startswith('fatura_coparticipacao_') and f.endswith('.ods')]
+files = [f for f in os.listdir('.') if os.path.isfile(f) and f.startswith('fatura_coparticipacao_') and (f.endswith('.ods') or f.endswith('.csv'))]
 
 if mes_escolhido == 'total':
     nr_funcional = input("Enter NR_FUNCIONAL ou 'total' para todos os funcionais: ").strip().lower()
