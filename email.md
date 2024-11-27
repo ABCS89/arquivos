@@ -1,7 +1,7 @@
 # Fatura coparticipação
 Prezad,
 
-Em atenção ao seu pedido, segue em anexo a discriminação da coparticipação do seu plano de saúde referente ao mês de Outubro.
+Em atenção ao seu pedido, segue em anexo a discriminação da coparticipação do seu plano de saúde referente ao mês de Novembro.
 
 Caso tenha qualquer dúvida ou necessite de mais informações, por favor, entre em contato.
 
@@ -16,7 +16,7 @@ Conforme solicitado, envio em anexo a ficha financeira de
 
 fatura_139355_abril.pdf
 /home/cloudshell-user/faturas/faturas_totais/fatura_213004_outubro.pdf
-/home/cloudshell-user/faturas/fatura_110587.pdf
+/home/cloudshell-user/faturas/fatura_coparticipacao_marco.ods
 /home/cloudshell-user/devops.pub
 
 /home/cloudshell-user/IMG/kauai-cruise.jpg
