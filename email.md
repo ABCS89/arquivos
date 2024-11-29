@@ -12,6 +12,12 @@ Prezados,
 Conforme solicitado, envio em anexo a ficha financeira de 
 
 
+#  
+
+Boa Tarde.
+
+Esta pessoa não consta em nosso sitema.
+
 # caminho faturas AWS cloudshell
 
 fatura_139355_abril.pdf
