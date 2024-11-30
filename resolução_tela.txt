@@ -7,11 +7,6 @@
 /home/cloudshell-user/IMG/banner.jpg
 
 
-
-
-EURO DOLLAR
- 0,00224
-
 https://convert-documents.vercel.app/
 
 https://devops-aws-1.atlassian.net/jira/core/projects/PREF/list
