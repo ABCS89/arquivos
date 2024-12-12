@@ -14,7 +14,7 @@ Conforme solicitado, envio em anexo a ficha financeira de
 
 #  
 
-Boa Tarde.
+Prezados,
 
 Esta pessoa não consta em nosso sitema.
 
@@ -30,18 +30,6 @@ fatura_139355_abril.pdf
 #
 
 andre_bueno_calixto@escoladotrabalhador40.com.br
-
-PMP 2024/103295
-
-PMP 2024/103279
-
-101871
-
-Portaria de Substituição de FG
-
-Processo Digital PMP 2024/116591
-inicio de atividade aguardando prazo - 04/11/2024
-
 
 19 3437-3821
 assistente social santa casa
