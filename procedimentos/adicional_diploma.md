@@ -3,6 +3,7 @@
  * Verbas fixas
    - codigo 532
       - quantidade
+      - data final = 31/12/2100
        - 10% = 10,00
        - 5% = 5,00 
 
