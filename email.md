@@ -1,7 +1,7 @@
 # Fatura coparticipação
 Prezad,
 
-Em atenção ao seu pedido, segue em anexo a discriminação da coparticipação do seu plano de saúde referente ao mês de Novembro.
+Em atenção ao seu pedido, segue em anexo a discriminação da coparticipação do seu plano de saúde referente ao mês de Dezembro.
 
 Caso tenha qualquer dúvida ou necessite de mais informações, por favor, entre em contato.
 
@@ -21,7 +21,7 @@ Esta pessoa não consta em nosso sitema.
 # caminho faturas AWS cloudshell
 
 fatura_139355_abril.pdf
-/home/cloudshell-user/faturas/faturas_totais/fatura_213004_outubro.pdf
+/home/cloudshell-user/faturas/faturas_totais/fatura_213004_dezembro.pdf
 /home/cloudshell-user/faturas/fatura_coparticipacao_marco.ods
 /home/cloudshell-user/devops.pub
 
