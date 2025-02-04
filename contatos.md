@@ -1,58 +1,58 @@
-#  Secretarias [Telefones]
+#  Secretarias Telefones
 
  # 01-
 
- # 02- [governo]
+ # 02- Governo
   - NAA - 1070
 
- # 03- [Procuradoria_Geral]
+ # 03- Procuradoria_Geral
    - 1288
    - NAA - 1292 - enoque
 
- # 04-  SEMUHGET [Habitação_e_Gestão_Territorial]
+ # 04-  SEMUHGET Habitação_e_Gestão_Territorial
 
- # 05-  SEMAD [Administração_ADM]
-  -  - Renan
+ # 05-  SEMAD Administração_ADM
+  - Renan - 1147
 
  # 06- 
 
- # 07- SME [Secretaria_de_Educação_]
+ # 07- SME Secretaria de Educação
    - Educação - Mari - 3417-1491
    - NAA - Nadia 3417-1148
    - Planejamento - 3417-1122
-     - FLAVIA - 3417-1120 [
+     - FLAVIA - 3417-1120
 
- # 08- [Obras_e_Zeladoria_SEMOZEL]   
+ # 08- Obras e Zeladoria SEMOZEL
    - Natali - 3124-2465
    - Recepção - 3124-2450
 
- # 09- SMADS [Assstencia_e_Desenvolvimento_Social]
+ # 09- SMADS Assstencia e Desenvolvimento Social
 
- # 10- SEMA [Agricultura_e_Abastecimento]
+ # 10- SEMA Agricultura e Abastecimento
    NAA - Ana paula - 3437-4000
 
- # 11- SIMAP [Infraestrutura_e_meio_ambiente]
+ # 11- SIMAP Infraestrutura e meio ambiente
   - NAA - 1250 - Heloana
  # 12-
 
  # 13-
 
- # 14- SMS [SAUDE]
+ # 14- SMS SAUDE
    - NAA - Camila - 1214 
    - inicios de atividade - 1162
-   - Douglas/Vinicius - 1263
+   - Douglas / Vinicius - 1162
 
- # 15-  SEMUTRI [Transportes Internos]
+ # 15-  SEMUTRI Transportes Internos
 
  # 16-
 
  # 17-
 
- # 18-
+ # 18- 
 
  # 19-
 
- # 20- [SEMDETUR]
+ # 20- SEMDETUR
         3403-1160
 
 
@@ -66,6 +66,9 @@
 
 # manutenção
  - 1372 - Reinaldo
+
+# SEMPEM
+ - 3433-0383
 
 
 # sem papel
