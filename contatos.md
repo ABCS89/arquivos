@@ -35,7 +35,7 @@
   - NAA - 1250 - Heloana
  # 12-
 
- # 13-
+ # 13- 
 
  # 14- SMS SAUDE
    - NAA - Camila - 1214 
@@ -48,7 +48,10 @@
 
  # 17-
 
- # 18- 
+ # 18- SELAM
+  - Beatriz - 3403-1360
+  - 1360
+  - 1165
 
  # 19-
 
@@ -63,6 +66,7 @@
 
 # Unimed T2
   - 1388 - Tamires
+  - 3403-1388
 
 # manutenção
  - 1372 - Reinaldo
