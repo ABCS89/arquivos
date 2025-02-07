@@ -11,7 +11,7 @@
 
  # 04-  SEMUHGET Habitação_e_Gestão_Territorial
 
- # 05-  SEMAD Administração_ADM
+ # 05-  SEMAD Administração ADM
   - Renan - 1147
 
  # 06- 
@@ -27,6 +27,7 @@
    - Recepção - 3124-2450
 
  # 09- SMADS Assstencia e Desenvolvimento Social
+  - Gabriel - 
 
  # 10- SEMA Agricultura e Abastecimento
    NAA - Ana paula - 3437-4000
@@ -44,16 +45,17 @@
 
  # 15-  SEMUTRI Transportes Internos
 
- # 16-
+ # 16- RITA 1043
+  - Laura - 1267
 
  # 17-
 
- # 18- SELAM
+ # 18-
+
+ # 19- SELAM
   - Beatriz - 3403-1360
   - 1360
   - 1165
-
- # 19-
 
  # 20- SEMDETUR
         3403-1160

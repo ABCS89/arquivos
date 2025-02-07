@@ -43,7 +43,7 @@
     - ficar atento aos adicionais de cada cargo, referentes a cada secretaria.
     -  
     - 
-    - Imprimir somente quendo for [troca_de_secretaria] e arquivar na pasta [local_de_trabalho]
+    - Imprimir somente quando for [troca_de_secretaria] e arquivar na pasta [local_de_trabalho]
 
 
 [
