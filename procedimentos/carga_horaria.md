@@ -19,12 +19,13 @@
 
     * SE tiver o seguinte caso, não haverá Redução salarial, mas cadastrar codigo 56 com Observação "de 8 para 6 horas diarias" e colocar [quantidade_0]
  
-  
+    > inserir em Função
+     - > Observação
     - Redução de carga horaria de 8 para 6 horas diarias em 03/10/2024, direito adquirido por lei 5714/2006 de 13 de abril de 2006.
 Filho portador de deficiência 
 Reduzido de 8 horas para 6 horas. (2024/122691)
   
-    * Rodar calculo de folha de pagamento para conferir valores.
+  > Rodar calculo de folha de pagamento para conferir valores.
 
 
 > Fazer sempre no primeiro dia do mês

@@ -7,7 +7,7 @@
        - 10% = 10,00
        - 5% = 5,00 
 
-#  Se Desligado
+>  Se Desligado
   - retirar data de exoneração
   - retirar data do acerto
   - retirar motivo desligamento
@@ -21,7 +21,8 @@
 # Troca de adicional de diploma [5%_para_10%]
   * terminar no fim do mes e iniciar no inicio do mes
     - verificar a data de troca do adicional de diploma
-    - fazer o calculo de quantos dias terá que ser feito o pagamento a mais[Dividir_o_valor_do_adicional_de_diploma_pelos_dias_do_mes__e_multiplicar_pelos_dias_que_serão_pagos_a_mais]
+    - fazer o calculo de quantos dias terá que ser feito o pagamento a mais
+    [Dividir_o_valor_do_adicional_de_diploma_pelos_dias_do_mes__e_multiplicar_pelos_dias_que_serão_pagos_a_mais]
 
   * inserir dados na planilha de inclusão de digitações do ano vigente
     - H:\RH\Pagamento\RELATÓRIOS MENSAIS
