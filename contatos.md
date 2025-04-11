@@ -28,7 +28,7 @@
 
 > ## 108 - SEMOZEL
   > - - ### Obras e Zeladoria
-    > - Natali - 3124-2465
+    > - Natali - Meire - 3124-2465
     > - Recepção - 3124-2450
 
 > ## 109- SMADS
