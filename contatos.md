@@ -21,7 +21,7 @@
   > - NAA 
   > - - Nadia - 3417-1148
   > - Planejamento 
-  > - - 3417-1122
+  > - - 3417-1122  - Marisa
   > - Inicio de atividades
     > - - FLAVIA - 3417-1120
     > - - 
@@ -50,7 +50,7 @@
   > - - ## SAUDE
     > - NAA - Camila - 1214 
     > - inicios de atividade - 1162
-    > - Douglas / Vinicius - 1162
+    > - Leandro - 1162
 
 > ## 15-  SEMUTRI Transportes Internos
 
