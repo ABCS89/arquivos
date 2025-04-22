@@ -33,7 +33,7 @@
 
 > ## 109- SMADS
   > - - ### Assstencia e Desenvolvimento Social e Familia
-    > - Gabriel - 
+    > - Gabriel - 3417-8800 - 
 
 > ## 110- SEMA
   > - - ### Agricultura e Abastecimento
