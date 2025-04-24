@@ -19,7 +19,7 @@ Prezados,
 Esta pessoa não consta em nosso sitema.
 
 
-# Intalar no Replit
+# Instalar no Replit
 > - pip install pandas
 > - pip install reportlab
 > - pip install odfpy
