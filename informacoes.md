@@ -1,7 +1,7 @@
 # Fatura coparticipação
 Prezad,
 
-Em atenção ao seu pedido, segue em anexo a discriminação da coparticipação do seu plano de saúde referente ao mês de Dezembro.
+Em atenção ao seu pedido, segue em anexo a discriminação da coparticipação do seu plano de saúde referente ao mês de Abril.
 
 Caso tenha qualquer dúvida ou necessite de mais informações, por favor, entre em contato.
 
@@ -17,6 +17,13 @@ Conforme solicitado, envio em anexo a ficha financeira de
 Prezados,
 
 Esta pessoa não consta em nosso sitema.
+
+
+# Intalar no Replit
+> - pip install pandas
+> - pip install reportlab
+> - pip install odfpy
+
 
 # caminho faturas AWS cloudshell
 
@@ -55,3 +62,8 @@ https://www.planalto.gov.br/ccivil_03/leis/l4090.htm#:~:text=LEI%20No%204.090%2C
 
 Consulta leis piracicaba
 https://www.legislacaodigital.com.br/Piracicaba-SP
+
+
+
+> ## caminho de instalação das impressoras
+> \\arquivos\manutencao\Drivers\_Impressoras\0K_LEXMARK\Lexmark - MX622 ADHE\InstallationPackage

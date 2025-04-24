@@ -92,8 +92,3 @@
 
 > ## sem papel
   > - 1080
-
-> ## caminho de instalação das impressoras
-> \\arquivos\manutencao\Drivers\_Impressoras\0K_LEXMARK\Lexmark - MX622 ADHE\InstallationPackage
-
-
