@@ -41,19 +41,19 @@ fatura_139355_abril.pdf
 
 andre_bueno_calixto@escoladotrabalhador40.com.br
 
+
+> - assistente social santa casa
 19 3437-3821
-assistente social santa casa
 
-
-psicologa - milene
+> - psicologa - milene
 19 98294-4726
 
 
 
-decreto cesta basica
+> - decreto cesta basica
 nº 5654/1992 artigo 10º
 
-portal transparencia - contrato unimed
+> - portal transparencia - contrato unimed
 https://transparencia.piracicaba.sp.gov.br/relatorio/contratos-2/?filtered=true&sequencia=0570/2023
 
 Lei 13º - ESTATUTARIO
