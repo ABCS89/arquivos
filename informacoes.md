@@ -1,74 +1,71 @@
-# Fatura coparticipação
+> # Fatura coparticipação
 Prezad,
 
 Em atenção ao seu pedido, segue em anexo a discriminação da coparticipação do seu plano de saúde referente ao mês de Abril.
 
 Caso tenha qualquer dúvida ou necessite de mais informações, por favor, entre em contato.
 
-# Solicitação de documentos
+> # Solicitação de documentos
 
 Prezados,
 
 Conforme solicitado, envio em anexo a ficha financeira de 
 
 
-#  
+#
 
 Prezados,
 
 Esta pessoa não consta em nosso sitema.
 
 
-# Instalar no Replit
+> # Instalar no Replit
 > - pip install pandas
 > - pip install reportlab
 > - pip install odfpy
 
-> - local instalação arquivos executaveis do Git Bash.
+> ### local instalação arquivos executaveis do Git Bash.
 > - C:\Users\abusilva\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.11_qbz5n2kfra8p0\LocalCache\local-packages\Python311\Scripts
 
 
-# caminho faturas AWS cloudshell
-
-fatura_139355_abril.pdf
-/home/cloudshell-user/faturas/faturas_totais/fatura_213004_dezembro.pdf
-/home/cloudshell-user/faturas/fatura_coparticipacao_marco.ods
-/home/cloudshell-user/devops.pub
-
-/home/cloudshell-user/IMG/kauai-cruise.jpg
-
-#
-
-andre_bueno_calixto@escoladotrabalhador40.com.br
+> # caminho faturas AWS cloudshell
+> - fatura_139355_abril.pdf
+> - /home/cloudshell-user/faturas/faturas_totais/fatura_213004_dezembro.pdf
+> - /home/cloudshell-user/faturas/fatura_coparticipacao_marco.ods
+> - /home/cloudshell-user/devops.pub
+> - /home/cloudshell-user/IMG/kauai-cruise.jpg
 
 
-> - assistente social santa casa
-19 3437-3821
+> ### andre_bueno_calixto@escoladotrabalhador40.com.br
 
-> - psicologa - milene
-19 98294-4726
+
+> #### assistente social santa casa
+> - 19 3437-3821
+
+> #### psicologa - milene
+> - 19 98294-4726
 
 
 
-> - decreto cesta basica
-nº 5654/1992 artigo 10º
+> ### decreto cesta basica
+> - nº 5654/1992 artigo 10º
 
-> - portal transparencia - contrato unimed
-https://transparencia.piracicaba.sp.gov.br/relatorio/contratos-2/?filtered=true&sequencia=0570/2023
+> ### portal transparencia - contrato unimed
+> - https://transparencia.piracicaba.sp.gov.br/relatorio/contratos-2/?filtered=true&sequencia=0570/2023
 
-Lei 13º - ESTATUTARIO
-https://legislacaodigital.com.br/Piracicaba-SP/LeisOrdinarias/1618
+> ### Lei 13º - ESTATUTARIO
+> - https://legislacaodigital.com.br/Piracicaba-SP/LeisOrdinarias/1618
 
-CLT
-https://www.planalto.gov.br/ccivil_03/leis/l4090.htm#:~:text=LEI%20No%204.090%2C%20DE%2013%20DE%20JULHO%20DE%201962.&text=Institui%20a%20Gratifica%C3%A7%C3%A3o%20de%20Natal%20para%20os%20Trabalhadores.
+> ## CLT
+> - https://www.planalto.gov.br/ccivil_03/leis/l4090.htm#:~:text=LEI%20No%204.090%2C%20DE%2013%20DE%20JULHO%20DE%201962.&text=Institui%20a%20Gratifica%C3%A7%C3%A3o%20de%20Natal%20para%20os%20Trabalhadores.
 
 
-Consulta leis piracicaba
-https://www.legislacaodigital.com.br/Piracicaba-SP
+> ## Consulta leis piracicaba
+> - https://www.legislacaodigital.com.br/Piracicaba-SP
 
 
 
 
 
 > ## caminho de instalação das impressoras
-> \\arquivos\manutencao\Drivers\_Impressoras\0K_LEXMARK\Lexmark - MX622 ADHE\InstallationPackage
+> - \\arquivos\manutencao\Drivers\_Impressoras\0K_LEXMARK\Lexmark - MX622 ADHE\InstallationPackage
