@@ -24,6 +24,9 @@ Esta pessoa não consta em nosso sitema.
 > - pip install reportlab
 > - pip install odfpy
 
+> - local instalação arqiovos executavei do python.
+C:\Users\abusilva\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.11_qbz5n2kfra8p0\LocalCache\local-packages\Python311\Scripts
+
 
 # caminho faturas AWS cloudshell
 
@@ -62,6 +65,8 @@ https://www.planalto.gov.br/ccivil_03/leis/l4090.htm#:~:text=LEI%20No%204.090%2C
 
 Consulta leis piracicaba
 https://www.legislacaodigital.com.br/Piracicaba-SP
+
+
 
 
 
