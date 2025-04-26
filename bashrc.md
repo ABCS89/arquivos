@@ -56,8 +56,12 @@ if [ -n "$force_color_prompt" ]; then
     fi
 fi
 
+if [ -f /usr/share/git/git-prompt.sh ]; then
+    . /usr/share/git/git-prompt.sh
+fi
+
 if [ "$color_prompt" = yes ]; then
-    PS1='\[\033[01;34m\]\w \[\033[01;33m\]$(git branch 2>/dev/null | grep "^*" | colrm 1 2)\[\033[00m\] \[\033[0;31m\]➜  \[\033[00m\]'
+    PS1='\[\033[01;34m\]\w\[\033[01;33m\]$(__git_ps1 " (%s)")\[\033[00m\] \[\033[0;31m\]➜  \[\033[00m\]'
 else
     PS1='${debian_chroot:+($debian_chroot)}\u@\h:\w\$ '
 fi
