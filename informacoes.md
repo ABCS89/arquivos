@@ -5,6 +5,10 @@ Em atenção ao seu pedido, segue em anexo a discriminação da coparticipação
 
 Caso tenha qualquer dúvida ou necessite de mais informações, por favor, entre em contato.
 
+> # Inicio de Atividades Comissionados
+> - Se errado
+> - * Favor preencher local de trabalho conforme novo organograma.
+
 > # Solicitação de documentos
 
 Prezados,
