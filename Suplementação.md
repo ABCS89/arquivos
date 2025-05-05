@@ -36,3 +36,10 @@
     > - * Ajuda no controle do apetite, e consequentemente na perda de peso.
     > ---
     > - * Ajuda na redução de estresse e tensão
+    > ---
+    > - * ajuda na redução de vicios
+    > ---
+    > - * 50mg a 100mg para controle no dia a dia usando algumas vezes ao dia
+    > - * 500mg para sindrome do panico 
+    > - * 900g para obesidade
+    > - Não usar por longos periodos de tempo, quanto maior a dose, menor o ciclo de uso.
