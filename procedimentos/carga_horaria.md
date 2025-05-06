@@ -28,4 +28,4 @@ Reduzido de 8 horas para 6 horas. (2024/122691)
   > Rodar calculo de folha de pagamento para conferir valores.
 
 
-> Fazer sempre no primeiro dia do mês
+> # Fazer sempre no primeiro dia do mês

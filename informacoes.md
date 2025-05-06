@@ -23,7 +23,7 @@ Prezados,
 Esta pessoa não consta em nosso sitema.
 
 
-> # Instalar no Replit
+> # Instalar no Replit / Linux / Gitbash
 > - pip install pandas
 > - pip install reportlab
 > - pip install odfpy
