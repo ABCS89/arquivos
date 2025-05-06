@@ -6,3 +6,11 @@
 > Justificar a função gratificada e o pagamento de assiduidade e nivel tecnico/superior
   - pagamento referente a [X] dias de função gratificada do mês de [Y]. Prot. [XYZ]
   - pagamento referente a premio assiduidade e adicional de nível tecnico/superior do mês de [Y]. Prot. [XYZ]
+
+
+# VERBA 26
+  > - Na FG - Estatutário
+  > - Na FG - diferença em assiduidade (6%) e Adicional de diploma (5% para tecnico ou 10% par asuperior) podendo ser inseridas em uma parte só (11% ou 16%)
+
+# VERBA 27
+  > - Na FG - CLT
