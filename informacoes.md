@@ -67,7 +67,8 @@ Esta pessoa não consta em nosso sitema.
 > ## Consulta leis piracicaba
 > - https://www.legislacaodigital.com.br/Piracicaba-SP
 
-
+> # Tabela de dados para cálculo da folha de Pagamento
+> - H:\RH\Pagamento/tabelas.xls
 
 
 
