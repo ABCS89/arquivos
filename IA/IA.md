@@ -19,7 +19,7 @@
 > - Resumos
 > - Resumo de Arquivos PDF
 > - Resumo de Videos de Youtube
-
+> ---
 > - resumo retorna em mapa mental.
 
 > - # Tactiq
@@ -37,6 +37,10 @@
 
 > - # Claude ai
 > - especializado em programação
+
+> - # Gamma App
+> - Gera Apresentações.
+> - 
 
 > ---
 

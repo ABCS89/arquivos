@@ -1,3 +1,7 @@
-gosto de jogar jogos como GTA, hell let loose, star wars battlefront 2, CS:GO, mas não pretendo jogar, e sim fazer algo que possa virar um negocio a longo prazo, sou mais analítico, consigo ver através das decisões que está sendo tomada, já fiz cursos de devops, mas nunca foi muito pra frente, pois tenho TDAH com perfil perfeccionista, e eu desistia antes de conseguir evoluir no que estava aprendendo pois nunca ficava do jeito que deveria estar e eu acabava me enrolando para conseguir evoluir e desistia pela frustração, gosto também de motos, tendo feito curso de mecânica de motos, sendo que também acompanho canais como o IBBM do china, que contem muito conteúdo de mecânica de motos, 
+Aula 1 - https://www.youtube.com/watch?v=IyX_IHJTs3M
+Aula 2 - https://www.youtube.com/watch?v=l0WmEw_Tot0
+Aula 3 - https://www.youtube.com/watch?v=OWEAM9w7jZU até o tempo de 1 hora e 28 minutos de video.
 
-como dito anteriormente, minha capacidade de aprender é boa, mesmo tendo 35 anos e TDAH perfeccionista, mas pretendo ficar na área digital/remota mesmo, até por que tenho trabalho fixo, trabalho na prefeitura na area de RH com folha de pagamento e desligamentos. e trabalho das 8:00 as 17:30
+Baseado nesses 3 videos, o que você pode me ensinar sobre inteligencia artificial, para usar desse modo que foram mostrados nos videos-aulas ?
+
+não invente nada que não for extraido dos videos.
