@@ -74,3 +74,10 @@ Esta pessoa não consta em nosso sitema.
 
 > ## caminho de instalação das impressoras
 > - \\arquivos\manutencao\Drivers\_Impressoras\0K_LEXMARK\Lexmark - MX622 ADHE\InstallationPackage
+
+# Pagamento de 13º em parcela única
+> - Somente para estatutários
+> - não pode ser pago em parcela única pela lei 4749/1965 artigo 2º
+> - https://www.planalto.gov.br/ccivil_03/leis/l4749.htm
+
+Solicitação recusada. Informamos que não é possível atender à solicitação, pois o pagamento do 13º salário em parcela única não é permitido pela Lei Federal Nº 4749/1965
