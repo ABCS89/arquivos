@@ -35,21 +35,9 @@ def get_month_name(month_number):
 
 def add_footer(canvas, doc):
     canvas.saveState()
-    canvas.setFont('Helvetica', 7)
-
-    footer_lines = [
-        "PREFEITURA DE PIRACICABA | SECRETARIA MUNICIPAL DE ADMINISTRAÇÃO E GOVERNO",
-        "Departamento de Recursos Humanos",
-        "Rua Antônio Corrêa Barbosa, 2233 – 7º Andar – Centro – Piracicaba/SP",
-        "Telefone: (19) 3403-1006"
-    ]
-
-    # Altura inicial do rodapé (mais próxima da base do documento)
-    y = 40  
-    for line in footer_lines:
-        canvas.drawCentredString(doc.width / 2.0 + doc.leftMargin, y, line)
-        y -= 9  # espaço entre linhas
-
+    footer_text = "Criado por André Bueno (DRH)"
+    canvas.setFont('Helvetica', 9)
+    canvas.drawString(30, 20, footer_text)
     canvas.restoreState()
 
 def generate_pdf(df, nr_funcional, output_pdf, mes_escolhido=None):
@@ -216,4 +204,3 @@ else:
             generate_pdf(df, nr_funcional, output_pdf, mes_escolhido)
     else:
         print(f"Nenhum arquivo encontrado com o padrão 'fatura_coparticipacao_{mes_escolhido}'.")
-# Fim do script
