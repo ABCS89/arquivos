@@ -41,7 +41,8 @@ def add_footer(canvas, doc):
         "PREFEITURA DE PIRACICABA | SECRETARIA MUNICIPAL DE ADMINISTRAÇÃO E GOVERNO",
         "Departamento de Recursos Humanos",
         "Rua Antônio Corrêa Barbosa, 2233 – 7º Andar – Centro – Piracicaba/SP",
-        "Telefone: (19) 3403-1006"
+        "Telefone: (19) 3403-1006",
+        "Criado Por André Bueno (DRH)"
     ]
 
     # Altura inicial do rodapé (mais próxima da base do documento)
