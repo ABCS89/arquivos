@@ -53,11 +53,12 @@
     > - inicios de atividade - 1162
     > - Leandro - 1162
     > - Keissy - 1223 - acessor secretária
+    > - Laura - 1267
 
 > ## 15-  SEMUTRI Transportes Internos
 
 > ## 16- RITA 1043
- > - Laura - 1267
+
 
 > ## 120 - SEMDEC
 > - Ana - 1169
