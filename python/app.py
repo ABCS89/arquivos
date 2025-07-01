@@ -1,3 +1,4 @@
+from flask import Flask, render_template, request, send_file
 import os
 import pandas as pd
 from reportlab.lib.pagesizes import landscape, A4
@@ -5,7 +6,14 @@ from reportlab.lib import colors
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph
 from reportlab.pdfgen import canvas
+from io import BytesIO
 
+app = Flask(__name__)
+
+# Caminho base para as faturas
+FATURAS_DIR = os.path.join('coparticipacao', 'faturas')
+
+# Funções auxiliares (as mesmas do seu script original)
 def list_sheets(file_path):
     xls = pd.ExcelFile(file_path, engine='odf')
     return xls.sheet_names
@@ -40,7 +48,7 @@ def add_footer(canvas, doc):
     canvas.drawString(30, 20, footer_text)
     canvas.restoreState()
 
-def generate_pdf(df, nr_funcional, output_pdf, mes_escolhido=None):
+def generate_pdf(df, nr_funcional, mes_escolhido=None):
     nr_funcional = str(int(float(nr_funcional)))
     df['NR_FUNCIONAL'] = df['NR_FUNCIONAL'].fillna('').astype(str).str.strip()
     df['NR_FUNCIONAL'] = df['NR_FUNCIONAL'].apply(lambda x: x.split('.')[0] if '.' in x else x)
@@ -48,9 +56,10 @@ def generate_pdf(df, nr_funcional, output_pdf, mes_escolhido=None):
 
     if filtered_df.empty:
         print(f"Nenhum registro encontrado para NR_FUNCIONAL: {nr_funcional}")
-        return
+        return None  # Retorna None se não houver dados
 
-    doc = SimpleDocTemplate(output_pdf, pagesize=landscape(A4))
+    buffer = BytesIO()  # Usar BytesIO para gerar o PDF na memória
+    doc = SimpleDocTemplate(buffer, pagesize=landscape(A4))
     elements = []
 
     styles = getSampleStyleSheet()
@@ -129,78 +138,56 @@ def generate_pdf(df, nr_funcional, output_pdf, mes_escolhido=None):
     elements.append(table)
 
     doc.build(elements, onFirstPage=add_footer, onLaterPages=add_footer)
-    print(f"PDF gerado: {output_pdf}")
+    buffer.seek(0)  # Retorna ao início do buffer
+    return buffer
 
+# Rota principal (formulário)
+@app.route('/', methods=['GET', 'POST'])
+def index():
+    meses = ["janeiro", "fevereiro", "marco", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"]
+    anos = ["2024", "2025"] # Adicione os anos que você tem as faturas
 
-def generate_pdfs_for_all_functionals(df, output_dir, mes):
-    os.makedirs(output_dir, exist_ok=True)
-    unique_funcionals = df['NR_FUNCIONAL'].unique()
+    if request.method == 'POST':
+        mes_escolhido = request.form['mes'].strip().lower()
+        ano_escolhido = request.form['ano'].strip()
+        nr_funcional = request.form['nr_funcional'].strip()
 
-    for nr_funcional in unique_funcionals:
-        if pd.isna(nr_funcional) or str(nr_funcional).strip() == '':
-            continue
-        output_pdf = os.path.join(output_dir, f"fatura_{str(int(float(nr_funcional)))}_{mes}.pdf")
-        generate_pdf(df, nr_funcional, output_pdf, mes)
+        # Constrói o caminho para o diretório do ano
+        ano_dir = os.path.join(FATURAS_DIR, ano_escolhido)
 
-# Main script
-meses = ["janeiro", "fevereiro", "marco", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"]
+        # Verifica se o diretório do ano existe
+        if not os.path.isdir(ano_dir):
+            return f"Diretório para o ano {ano_escolhido} não encontrado."
 
-# Solicita o mês ao usuário
-mes_escolhido = input("Digite o mês desejado ou 'total' para todos os meses: ").strip().lower()
+        file_path = None
+        # Procura pelo arquivo no diretório do ano
+        for filename in os.listdir(ano_dir):
+            if mes_escolhido in filename.lower() and filename.startswith('fatura_coparticipacao_'):
+                file_path = os.path.join(ano_dir, filename)
+                break
 
-# Verifica se a entrada é válida
-if mes_escolhido not in meses and mes_escolhido != 'total':
-    print("Mês inválido. Por favor, digite um mês válido ou 'total'.")
-    exit()
+        if not file_path:
+            return "Arquivo não encontrado para o mês e ano selecionados."
 
-# Procurando arquivos que contém o mês no nome ou todos os meses
-files = [f for f in os.listdir('.') if os.path.isfile(f) and f.startswith('fatura_coparticipacao_')]
+        try:
+            df = read_file(file_path)
+            pdf_buffer = generate_pdf(df, nr_funcional, mes_escolhido)
 
-if mes_escolhido == 'total':
-    nr_funcional = input("Enter NR_FUNCIONAL ou 'total' para todos os funcionais: ").strip().lower()
-    if nr_funcional == 'total':
-        output_dir = './faturas_totais'
-        for mes in meses:
-            for f in files:
-                if mes in f.lower():
-                    file_path = f
-                    print(f"Arquivo encontrado: {file_path}")
-                    df = read_file(file_path)
-                    print(f"Primeiras linhas do arquivo lido:")
-                    print(df.head())
-                    generate_pdfs_for_all_functionals(df, output_dir, mes)
-    else:
-        output_dir = './faturas_totais'
-        os.makedirs(output_dir, exist_ok=True)
-        for mes in meses:
-            for f in files:
-                if mes in f.lower():
-                    file_path = f
-                    print(f"Arquivo encontrado: {file_path}")
-                    df = read_file(file_path)
-                    print(f"Primeiras linhas do arquivo lido:")
-                    print(df.head())
-                    output_pdf = os.path.join(output_dir, f"fatura_{nr_funcional}_{mes}.pdf")
-                    generate_pdf(df, nr_funcional, output_pdf, mes)
-else:
-    file_path = None
-    for f in files:
-        if mes_escolhido in f.lower():
-            file_path = f
-            break
+            if pdf_buffer:
+                # Enviar o PDF como um arquivo para download
+                return send_file(
+                    pdf_buffer,
+                    as_attachment=True,
+                    download_name=f"fatura_{nr_funcional}_{mes_escolhido}.pdf",
+                    mimetype='application/pdf'
+                )
+            else:
+                return "Nenhum dado encontrado para os parâmetros informados."
 
-    if file_path:
-        print(f"Arquivo encontrado: {file_path}")
-        df = read_file(file_path)
-        print("Primeiras linhas do arquivo lido:")
-        print(df.head())
+        except Exception as e:
+            return f"Erro ao processar o arquivo: {str(e)}"
 
-        nr_funcional = input("Enter NR_FUNCIONAL ou 'total' para todos os funcionais: ").strip().lower()
-        if nr_funcional == 'total':
-            output_dir = './faturas_totais'
-            generate_pdfs_for_all_functionals(df, output_dir, mes_escolhido)
-        else:
-            output_pdf = f"fatura_{nr_funcional}_{mes_escolhido}.pdf"
-            generate_pdf(df, nr_funcional, output_pdf, mes_escolhido)
-    else:
-        print(f"Nenhum arquivo encontrado com o padrão 'fatura_coparticipacao_{mes_escolhido}'.")
+    return render_template('index.html', meses=meses, anos=anos)
+
+if __name__ == '__main__':
+    app.run(debug=True)
