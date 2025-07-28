@@ -1,5 +1,8 @@
 # CLT
-### Rescisão a pedido do empregado.
+## Exoneração - Rescisão a pedido do empregado.
+## Aposenadoria - 
+
 -----------
 # Estatutário
-## Exoneração a pedido do empregado.
+## Exoneração - Exoneração a pedido do empregado.
+## Aposentadoria - Aposentadoria por tempo de contribuição
