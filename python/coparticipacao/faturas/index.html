@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Gerador de Fatura</title>
+</head>
+<body>
+    <h1>Gerador de Fatura</h1>
+    <form method="post">
+        <label for="ano">Ano:</label>
+        <select name="ano" id="ano">
+            {% for ano in anos %}
+                <option value="{{ ano }}">{{ ano }}</option>
+            {% endfor %}
+        </select>
+        <br><br>
+        <label for="mes">Mês:</label>
+        <select name="mes" id="mes">
+            {% for mes in meses %}
+                <option value="{{ mes }}">{{ mes.capitalize() }}</option>
+            {% endfor %}
+        </select>
+        <br><br>
+        <label for="nr_funcional">NR Funcional:</label>
+        <input type="text" id="nr_funcional" name="nr_funcional" required><br><br>
+        <input type="submit" value="Gerar Fatura">
+    </form>
+</body>
+</html>

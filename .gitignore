@@ -1,0 +1,13 @@
+/task/
+/python/coparticipacao/faturas/2024/*.pdf
+/python/coparticipacao/faturas/2024/faturas_totais/
+/python/coparticipacao/faturas/2024/*.csv
+/python/coparticipacao/faturas/2024/*.ods
+
+
+/python/coparticipacao/faturas/2025/*.pdf
+/python/coparticipacao/faturas/2025/faturas_totais/
+/python/coparticipacao/faturas/2025/*.csv
+/python/coparticipacao/faturas/2025/*.ods
+
+.venv
