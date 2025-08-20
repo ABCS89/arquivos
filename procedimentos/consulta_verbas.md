@@ -1,0 +1,1 @@
+Relatórios > financeiro > verbas por funcionário
