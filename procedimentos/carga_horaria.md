@@ -22,8 +22,6 @@
     > inserir em Função
      - > Observação
     - Alteração na carga horária em <data>, por possuir redução de carga horária pela Lei 5714/2006 - Filho portador de deficiência. Protocolo <prot>
-Filho portador de deficiência 
-Reduzido de 8 horas para 6 horas. (2024/122691)
   
   > Rodar calculo de folha de pagamento para conferir valores.
 
