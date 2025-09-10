@@ -21,7 +21,7 @@
  
     > inserir em Função
      - > Observação
-    - Redução de carga horaria de 8 para 6 horas diárias em  <data>, direito adquirido por lei 5714/2006 de 13 de abril de 2006.
+    - Alteração na carga horária em <data>, por possuir redução de carga horária pela Lei 5714/2006 - Filho portador de deficiência. Protocolo <prot>
 Filho portador de deficiência 
 Reduzido de 8 horas para 6 horas. (2024/122691)
   
