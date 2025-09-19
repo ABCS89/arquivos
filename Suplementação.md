@@ -20,6 +20,7 @@
 
 > - ## Phenibut
 > - * Desempenho cognitivo
+> - * relaxante neuronal
 
 > - ## Omega 3
     > - * 250mg a 500 mg de EPA / DHA combinados por DIA para baixa inflamação alternando as épocas de uso.
@@ -46,3 +47,12 @@
 
 > - ## Magnésio
     > - Treonato
+
+> - ## modafinila
+
+> - ## aneracetam
+ - melhora fluez verbal
+
+ > - ## psilocibina
+
+
