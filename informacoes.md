@@ -1,7 +1,7 @@
 > # Fatura coparticipação
 Prezad,
 
-Em atenção ao seu pedido, segue em anexo a discriminação da coparticipação do seu plano de saúde referente ao mês de Agosto.
+Em atenção ao seu pedido, segue em anexo a discriminação da coparticipação do seu plano de saúde referente ao mês de Setembro.
 
 Caso tenha qualquer dúvida ou necessite de mais informações, por favor, entre em contato.
 
