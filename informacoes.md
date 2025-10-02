@@ -79,3 +79,7 @@ Esta pessoa não consta em nosso sitema.
 > - https://www.planalto.gov.br/ccivil_03/leis/l4749.htm
 
 Solicitação recusada. Informamos que não é possível atender à solicitação, pois o pagamento do 13º salário em parcela única não é permitido pela Lei Federal Nº 4749/1965
+
+# Declaração de união estável
+## Seguir os passos do seguinte link para ter uma união estável validada em cartório.
+> - https://www.jusbrasil.com.br/modelos-pecas/modelo-declaracao-de-uniao-estavel/365278086
