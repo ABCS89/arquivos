@@ -1,3 +1,8 @@
+# Verificar Status da Frequencia
+ - Rotina Mensal
+   - Situação de fechamento
+
+
 # Importar frequencia
  - Rotina mensal
    - Frequencia
@@ -25,9 +30,9 @@
     - abono eleitoral
     - ferias premio
     - ferias regulamentares
+
 ----
 
-[
 # retificar faltas por mudanca de departamento
   - Cadastro:
       - Cadastro Pessoal - Funcionario:
@@ -36,4 +41,5 @@
         - ja aparece se a funcional estiver colocada, se der problema siga o proximo passo:
       - Processos
         - fechar e ir na aba Falta/Abono
+        
 -----
