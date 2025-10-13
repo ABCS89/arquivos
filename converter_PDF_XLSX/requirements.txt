@@ -1,0 +1,6 @@
+pdfplumber
+pandas
+openpyxl
+pytesseract
+tabula-py
+PyPDF2
