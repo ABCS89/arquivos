@@ -12,3 +12,7 @@
 /python/coparticipacao/faturas/2025/*.ods
 
 .venv
+
+*.xls
+*.xlsx
+*.pdf
