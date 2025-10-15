@@ -43,3 +43,6 @@
         - fechar e ir na aba Falta/Abono
         
 -----
+
+Favor retificar as seguintes frequências:
+

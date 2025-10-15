@@ -13,6 +13,10 @@
 
 .venv
 
-*.xls
-*.xlsx
-*.pdf
+/converter_PDF_XLSX/*.pdf
+/converter_PDF_XLSX/*.xlsx
+/converter_PDF_XLSX/*.csv
+/converter_PDF_XLSX/*.ods
+/converter_PDF_XLSX/*.docx
+
+
