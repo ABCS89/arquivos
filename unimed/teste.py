@@ -28,11 +28,10 @@ def extract_text_from_pdf(pdf_path):
     return text
 
 def extract_info_from_pdf_content(pdf_content):
+    # Apenas extrai a data do PDF, o email virá da planilha
     email_date_match = re.search(r'Data (\d{4}-\d{2}-\d{2})', pdf_content)
-    email_address_match = re.search(r'Para <([^>]+)>', pdf_content)
     
     email_date = email_date_match.group(1) if email_date_match else 'DATA_NAO_ENCONTRADA'
-    email_address = email_address_match.group(1) if email_address_match else 'EMAIL_NAO_ENCONTRADO'
     
     if email_date != 'DATA_NAO_ENCONTRADA':
         date_obj = pd.to_datetime(email_date)
@@ -46,7 +45,8 @@ def extract_info_from_pdf_content(pdf_content):
         email_year = 'ANO_NAO_ENCONTRADO'
         email_date_formatted = 'DATA_NAO_ENCONTRADA'
 
-    return email_date, email_address, email_month_portugues, email_day, email_year, email_date_formatted
+    # Retorna o email_address como None ou um placeholder, pois virá da planilha
+    return email_date, None, email_month_portugues, email_day, email_year, email_date_formatted
 
 def number_to_currency_text_extended(number):
     try:
@@ -65,7 +65,6 @@ def number_to_currency_text_extended(number):
         return f'VALOR_POR_EXTENSO_ERRO_{number:.2f}'.replace('.', ',')
 
 def normalize_name(name):
-    # Remove acentos, caracteres especiais, múltiplos espaços e converte para minúsculas
     name = name.lower()
     name = re.sub(r'[áàãâä]', 'a', name)
     name = re.sub(r'[éèêë]', 'e', name)
@@ -73,8 +72,8 @@ def normalize_name(name):
     name = re.sub(r'[óòõôö]', 'o', name)
     name = re.sub(r'[úùûü]', 'u', name)
     name = re.sub(r'[ç]', 'c', name)
-    name = re.sub(r'[^a-z0-9]', '', name) # Remove qualquer coisa que não seja letra ou número
-    name = re.sub(r'\s+', '', name).strip() # Remove todos os espaços
+    name = re.sub(r'[^a-z0-9 ]', '', name) 
+    name = re.sub(r'\s+', ' ', name).strip() 
     return name
 
 def replace_text_in_paragraph(paragraph, key, value):
@@ -87,21 +86,24 @@ def replace_text_in_paragraph(paragraph, key, value):
                 return 
         paragraph.text = paragraph.text.replace(key, str(value))
 
-def generate_document(data_row, email_info, current_date_info, due_date_info, template_path='template.docx'):
+def generate_document(data_row, email_info_from_pdf, current_date_info, due_date_info, template_path='template.docx'):
     document = Document(template_path)
 
     nro_funcional = data_row['Nro Funcional']
     funcionario = data_row['Funcionário']
     total = data_row['Total']
     
+    # Extrair email, endereço e CEP da planilha
+    email_from_ods = data_row['Email'] if 'Email' in data_row and pd.notna(data_row['Email']) else 'EMAIL_NAO_ENCONTRADO_PLANILHA'
     endereco = data_row['Endereço'] if 'Endereço' in data_row and pd.notna(data_row['Endereço']) else 'ENDERECO_NAO_ENCONTRADO'
     cep = data_row['CEP'] if 'CEP' in data_row and pd.notna(data_row['CEP']) else 'CEP_NAO_ENCONTRADO'
 
-    email_date_raw, email_address, email_month_portugues, email_day, email_year, email_date_formatted = email_info
+    email_date_raw, _, email_month_portugues, email_day, email_year, email_date_formatted = email_info_from_pdf
     current_day, current_month_portugues, current_year, current_date_formatted = current_date_info
     due_day, due_month_portugues, due_year, due_date_formatted = due_date_info
 
     replacements = {
+        # Datas
         '[dia atual]': str(current_day),
         '[mês atual]': current_month_portugues,
         '[ano atual]': str(current_year),
@@ -111,23 +113,27 @@ def generate_document(data_row, email_info, current_date_info, due_date_info, te
         '[mês vencimento]': due_month_portugues,
         '[ano vencimento]': str(due_year),
 
+        # Email info (data do PDF, endereço da planilha)
         '[dia email]': str(email_day),
         '[mês email]': email_month_portugues,
         '[ano email]': str(email_year),
-        '[endereço de e-mail]': email_address,
+        '[endereço de e-mail]': email_from_ods,
 
+        # Valores
         '[valor numérico]': f'{total:.2f}'.replace('.', ','),
         '[valor por extenso]': number_to_currency_text_extended(total),
 
+        # Funcionário info
         '[nome do servidor]': funcionario,
         '[endereço do servidor]': endereco,
         '[CEP do servidor]': cep,
-        'V. Sª.': f'V. Sa. {funcionario}',
+        'V. Sª.': f'V. Sa. {funcionario}', # Saudação genérica com nome
     }
 
     for paragraph in document.paragraphs:
         for key, value in replacements.items():
             if key in paragraph.text:
+                # Special handling for bolding the name in 'Ilmo(a) Senhor(a):'
                 if key == '[nome do servidor]' and paragraph.text.strip().startswith('Ilmo(a) Senhor(a):'):
                     paragraph.clear()
                     paragraph.add_run('Ilmo(a) Senhor(a):\n').bold = False
@@ -139,10 +145,12 @@ def generate_document(data_row, email_info, current_date_info, due_date_info, te
                 else:
                     replace_text_in_paragraph(paragraph, key, value)
         
+        # Ensure address and CEP are handled if they are placeholders
+        # This needs to be done after all replacements to avoid replacing parts of placeholders
         if '[endereço do servidor]' in paragraph.text and endereco == 'ENDERECO_NAO_ENCONTRADO':
-            replace_text_in_paragraph(paragraph, '[endereço do servidor]', '')
+            replace_text_in_paragraph(paragraph, '[endereço do servidor]', '') # Remove placeholder if no data
         if '[CEP do servidor]' in paragraph.text and cep == 'CEP_NAO_ENCONTRADO':
-            replace_text_in_paragraph(paragraph, '[CEP do servidor]', '')
+            replace_text_in_paragraph(paragraph, '[CEP do servidor]', '') # Remove placeholder if no data
 
     output_filename = f'documento_{nro_funcional}_{funcionario.replace(" ", "_")}.docx'
     document.save(output_filename)
@@ -161,38 +169,39 @@ if __name__ == '__main__':
     due_date_formatted = f'{last_day_of_month} de {current_month_portugues} de {today.year}'
     due_date_info = (last_day_of_month, current_month_portugues, today.year, due_date_formatted)
 
-    if not os.path.exists('template.docx'):
-        doc_template = Document()
-        doc_template.add_paragraph('Prefeitura do Município de Piracicaba')
-        doc_template.add_paragraph('SECRETARIA DE ADMINISTRAÇÃO E GOVERNO')
-        doc_template.add_paragraph('Gerência de Recursos Humanos -')
-        doc_template.add_paragraph('')
-        doc_template.add_paragraph('Piracicaba, [dia atual] de [mês atual] de [ano atual].') # Updated header date
-        doc_template.add_paragraph('')
-        doc_template.add_paragraph('Assunto: pagamento do Plano de Saúde dos Servidores Públicos de Piracicaba')
-        doc_template.add_paragraph('')
-        doc_template.add_paragraph('Prezado(a) Senhor(a):')
-        doc_template.add_paragraph('')
-        doc_template.add_paragraph('Pelo presente, solicitamos o pagamento do boleto em anexo, com vencimento em [ultimo dia do mês atual] de [mês vencimento] de [ano vencimento], referente às mensalidades e coparticipações do Plano de Saúde dos Servidores Públicos de Piracicaba, no valor de R$ [valor numérico] ([valor por extenso]).') # Updated due date
-        doc_template.add_paragraph('Informamos que notificação semelhante foi enviada ao e-mail cadastrado no sistema ([endereço de e-mail]), em [dia email] de [mês email] de [ano email].') # Email date
-        doc_template.add_paragraph('Ressaltamos que o não pagamento poderá implicar na rescisão do plano de saúde, conforme dispositivos legais vigentes.')
-        doc_template.add_paragraph('Aproveitamos a oportunidade para renovar a V. Sª., os protestos de consideração.')
-        doc_template.add_paragraph('')
-        doc_template.add_paragraph('Atenciosamente,')
-        doc_template.add_paragraph('')
-        doc_template.add_paragraph('JOSIEL WILLIAM PAES RODRIGUES')
-        doc_template.add_paragraph('Chefe de Setor')
-        doc_template.add_paragraph('')
-        doc_template.add_paragraph('VISTO')
-        doc_template.add_paragraph('')
-        doc_template.add_paragraph('PAULO SERGIO MILANEZ FILHO')
-        doc_template.add_paragraph('Gestor de Unidade')
-        doc_template.add_paragraph('')
-        doc_template.add_paragraph('Ilmo(a) Senhor(a):')
-        doc_template.add_paragraph('[nome do servidor]')
-        doc_template.add_paragraph('Rua: [endereço do servidor]')
-        doc_template.add_paragraph('CEP: [CEP do servidor]')
-        doc_template.save('template.docx')
+    # Não gerar template.docx se ele já existe, conforme solicitado
+    # if not os.path.exists('template.docx'):
+    #     doc_template = Document()
+    #     doc_template.add_paragraph('Prefeitura do Município de Piracicaba')
+    #     doc_template.add_paragraph('SECRETARIA DE ADMINISTRAÇÃO E GOVERNO')
+    #     doc_template.add_paragraph('Gerência de Recursos Humanos -')
+    #     doc_template.add_paragraph('')
+    #     doc_template.add_paragraph('Piracicaba, [dia atual] de [mês atual] de [ano atual].') # Updated header date
+    #     doc_template.add_paragraph('')
+    #     doc_template.add_paragraph('Assunto: pagamento do Plano de Saúde dos Servidores Públicos de Piracicaba')
+    #     doc_template.add_paragraph('')
+    #     doc_template.add_paragraph('Prezado(a) Senhor(a):')
+    #     doc_template.add_paragraph('')
+    #     doc_template.add_paragraph('Pelo presente, solicitamos o pagamento do boleto em anexo, com vencimento em [ultimo dia do mês atual] de [mês vencimento] de [ano vencimento], referente às mensalidades e coparticipações do Plano de Saúde dos Servidores Públicos de Piracicaba, no valor de R$ [valor numérico] ([valor por extenso]).') # Updated due date
+    #     doc_template.add_paragraph('Informamos que notificação semelhante foi enviada ao e-mail cadastrado no sistema ([endereço de e-mail]), em [dia email] de [mês email] de [ano email].') # Email date
+    #     doc_template.add_paragraph('Ressaltamos que o não pagamento poderá implicar na rescisão do plano de saúde, conforme dispositivos legais vigentes.')
+    #     doc_template.add_paragraph('Aproveitamos a oportunidade para renovar a V. Sª., os protestos de consideração.')
+    #     doc_template.add_paragraph('')
+    #     doc_template.add_paragraph('Atenciosamente,')
+    #     doc_template.add_paragraph('')
+    #     doc_template.add_paragraph('JOSIEL WILLIAM PAES RODRIGUES')
+    #     doc_template.add_paragraph('Chefe de Setor')
+    #     doc_template.add_paragraph('')
+    #     doc_template.add_paragraph('VISTO')
+    #     doc_template.add_paragraph('')
+    #     doc_template.add_paragraph('PAULO SERGIO MILANEZ FILHO')
+    #     doc_template.add_paragraph('Gestor de Unidade')
+    #     doc_template.add_paragraph('')
+    #     doc_template.add_paragraph('Ilmo(a) Senhor(a):')
+    #     doc_template.add_paragraph('[nome do servidor]')
+    #     doc_template.add_paragraph('Rua: [endereço do servidor]')
+    #     doc_template.add_paragraph('CEP: [CEP do servidor]')
+    #     doc_template.save('template.docx')
 
     df = pd.read_excel(ods_path, engine='odf')
 
@@ -203,24 +212,27 @@ if __name__ == '__main__':
         funcionario_nome_planilha = row['Funcionário']
         normalized_funcionario_name = normalize_name(funcionario_nome_planilha)
         
-        print(f"\n--- Processando funcionário da planilha ---")
-        print(f"Nome original da planilha: {funcionario_nome_planilha}")
-        print(f"Nome normalizado da planilha: {normalized_funcionario_name}")
+        # Prints de depuração para entender a normalização
+        # print(f"\n--- Processando funcionário da planilha ---")
+        # print(f"Nome original da planilha: {funcionario_nome_planilha}")
+        # print(f"Nome normalizado da planilha: {normalized_funcionario_name}")
 
         found_pdf = None
         for pdf_file in pdf_files:
+            # Remove '_email.pdf' e normaliza o nome do arquivo, e também remove '_TANCREDO' se presente
             base_pdf_name = pdf_file.replace('_email.pdf', '').replace('_TANCREDO', '')
             normalized_pdf_filename = normalize_name(base_pdf_name)
             
-            print(f"  Comparando com PDF: {pdf_file}")
-            print(f"  Nome original do PDF (base): {base_pdf_name}")
-            print(f"  Nome normalizado do PDF: {normalized_pdf_filename}")
+            # Prints de depuração para entender a comparação
+            # print(f"  Comparando com PDF: {pdf_file}")
+            # print(f"  Nome original do PDF (base): {base_pdf_name}")
+            # print(f"  Nome normalizado do PDF: {normalized_pdf_filename}")
             
             # Lógica de correspondência aprimorada: verificar se o nome normalizado da planilha está contido no nome normalizado do PDF
             # ou se o nome normalizado do PDF começa com o nome normalizado do funcionário (para casos onde o nome do PDF é mais curto)
             if normalized_funcionario_name in normalized_pdf_filename or normalized_pdf_filename.startswith(normalized_funcionario_name):
                 found_pdf = pdf_file
-                print(f"  *** Correspondência encontrada: {pdf_file} ***")
+                # print(f"  *** Correspondência encontrada: {pdf_file} ***")
                 break
         
         if found_pdf:
@@ -234,8 +246,10 @@ if __name__ == '__main__':
         if nro_funcional in pdf_map:
             current_pdf_path = os.path.join(pdf_directory, pdf_map[nro_funcional])
             pdf_content = extract_text_from_pdf(current_pdf_path)
-            email_date_raw, email_address, email_month_portugues, email_day, email_year, email_date_formatted = extract_info_from_pdf_content(pdf_content)
-            email_info = (email_date_raw, email_address, email_month_portugues, email_day, email_year, email_date_formatted)
+            # email_address agora virá da planilha, não do PDF
+            email_date_raw, _, email_month_portugues, email_day, email_year, email_date_formatted = extract_info_from_pdf_content(pdf_content)
+            # Passa o email_from_ods como o email_address para a função generate_document
+            email_info = (email_date_raw, row['Email'] if 'Email' in row and pd.notna(row['Email']) else 'EMAIL_NAO_ENCONTRADO_PLANILHA', email_month_portugues, email_day, email_year, email_date_formatted)
             generate_document(row, email_info, current_date_info, due_date_info, template_path='template.docx')
         else:
             print(f"Aviso: Nenhum PDF de e-mail encontrado para o funcionário: {row['Funcionário']} (Nro Funcional: {nro_funcional}). Documento para este funcionário não será gerado.")
