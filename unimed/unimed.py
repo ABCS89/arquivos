@@ -100,13 +100,13 @@ def generate_document(data_row, email_date_info, current_date_info, due_date_inf
     cep = data_row['CEP'] if 'CEP' in data_row and pd.notna(data_row['CEP']) else ''
 
     endereco_completo = endereco_rua
-    if bairro: 
+    if complemento: 
         endereco_completo += f', – {complemento}'
-    if complemento:
+    if bairro:
         endereco_completo += f', – {bairro}'
         # endereco_completo += f' - CEP: {cep}'
     
-    email_address_from_excel = data_row['email'] if 'email' in data_row and pd.notna(data_row['email']) else 'email'
+    email_address_from_excel = data_row['mail'] if 'mail' in data_row and pd.notna(data_row['mail']) else 'mail'
 
     email_date_raw, _, email_month_portugues, email_day, email_year, email_date_formatted = email_date_info
     current_day, current_month_portugues, current_year, current_date_formatted = current_date_info
@@ -125,7 +125,7 @@ def generate_document(data_row, email_date_info, current_date_info, due_date_inf
         '[dia email]': str(email_day),
         '[mês email]': email_month_portugues,
         '[ano email]': str(email_year),
-        '[email]': email_address_from_excel,
+        '[r-mail]': email_address_from_excel,
 
         '[valor numérico]': f'{total:.2f}'.replace('.', ','),
         '[valor por extenso]': number_to_currency_text_extended(total),
@@ -147,13 +147,13 @@ def generate_document(data_row, email_date_info, current_date_info, due_date_inf
             run_name.font.name = 'Calibri'
             continue
 
-        if 'Informamos que notificação semelhante foi enviada ao email cadastrado no sistema ([email]), em' in paragraph.text:
+        if 'Informamos que notificação semelhante foi enviada ao email cadastrado no sistema ([r-mail]), em' in paragraph.text:
             # Criar uma nova lista de runs para reconstruir o parágrafo
             new_runs = []
             temp_text = paragraph.text
             
             # Encontrar a posição do placeholder do email e da data
-            email_placeholder = '[email]'
+            email_placeholder = '[r-mail]'
             date_placeholder = 'em 20 de [mês atual] de [ano atual].'
 
             # Dividir o texto do parágrafo em partes antes, durante e depois dos placeholders
@@ -233,7 +233,7 @@ if __name__ == '__main__':
     print(f"\n--- Iniciando geração de documentos ---")
     for index, row in df.iterrows():
         nro_funcional = row['Nro Funcional']
-        email_address_from_excel = row['email'] if 'email' in row and pd.notna(row['email']) else 'email'
+        email_address_from_excel = row['mail'] if 'mail' in row and pd.notna(row['mail']) else 'r-mail'
 
         if nro_funcional in pdf_map:
             current_pdf_path = os.path.join(pdf_directory, pdf_map[nro_funcional])

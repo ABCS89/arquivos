@@ -30,19 +30,19 @@ def extract_text_from_pdf(pdf_path):
 def extract_info_from_pdf_content(pdf_content):
     email_date_match = re.search(r'Data (\d{4}-\d{2}-\d{2})', pdf_content)
     
-    email_date = email_date_match.group(1) if email_date_match else 'DATA_NAO_ENCONTRADA'
+    email_date = email_date_match.group(1) if email_date_match else 'dia de mês de ano'
     
-    if email_date != 'DATA_NAO_ENCONTRADA':
+    if email_date != 'dia de mês de ano':
         date_obj = pd.to_datetime(email_date)
         email_month_portugues = meses_portugues[date_obj.month]
         email_day = date_obj.day
         email_year = date_obj.year
         email_date_formatted = f'{email_day} de {email_month_portugues} de {email_year}'
     else:
-        email_month_portugues = 'MES_NAO_ENCONTRADO'
-        email_day = 'DIA_NAO_ENCONTRADO'
-        email_year = 'ANO_NAO_ENCONTRADO'
-        email_date_formatted = 'DATA_NAO_ENCONTRADA'
+        email_month_portugues = 'mês'
+        email_day = 'dia'
+        email_year = 'ano'
+        # email_date_formatted = 'dia de mês de ano'
 
     return email_date, 'EMAIL_DO_PDF_REMOVIDO', email_month_portugues, email_day, email_year, email_date_formatted
 
@@ -85,6 +85,53 @@ def replace_text_in_paragraph(paragraph, key, value):
                 return 
         paragraph.text = paragraph.text.replace(key, str(value))
 
+def replace_paragraph_text_preserve_style(paragraph, new_text):
+    """
+    Substitui todo o texto do parágrafo por new_text preservando
+    a formatação do primeiro run (fonte, tamanho, negrito, itálico).
+    """
+    # Determina formatação base (do primeiro run que tiver formatação explícita)
+    base_font_name = True
+    base_font_size = True
+    base_bold = None
+    base_italic = None
+
+    if paragraph.runs:
+        # Tenta achar um run com formatação explícita, senão usa o primeiro
+        base_run = paragraph.runs[0]
+        for r in paragraph.runs:
+            # usa o primeiro run que tenha alguma propriedade configurada
+            if (r.font.name or r.font.size or r.bold is not None or r.italic is not None):
+                base_run = r
+                break
+        base_font_name = base_run.font.name
+        base_font_size = base_run.font.size
+        base_bold = base_run.bold
+        base_italic = base_run.italic
+
+    # Limpa e cria novo run com o texto substituído
+    paragraph.clear()
+    run = paragraph.add_run(new_text)
+
+    # Aplica formatação base (quando disponível)
+    if base_font_name:
+        try:
+            run.font.name = base_font_name
+        except Exception:
+            pass
+    if base_font_size:
+        try:
+            run.font.size = base_font_size
+        except Exception:
+            pass
+    # bold/italic podem ser True/False/None
+    if base_bold is not None:
+        run.bold = base_bold
+    if base_italic is not None:
+        run.italic = base_italic
+
+
+
 def generate_document(data_row, email_date_info, current_date_info, due_date_info, template_path='template.docx'):
     document = Document(template_path)
 
@@ -100,13 +147,13 @@ def generate_document(data_row, email_date_info, current_date_info, due_date_inf
     cep = data_row['CEP'] if 'CEP' in data_row and pd.notna(data_row['CEP']) else ''
 
     endereco_completo = endereco_rua
-    if bairro: 
-        endereco_completo += f', {bairro}'
-    if complemento:
-        endereco_completo += f', {complemento}'
+    if complemento: 
+        endereco_completo += f', – {complemento}'
+    if bairro:
+        endereco_completo += f', – {bairro}'
         # endereco_completo += f' - CEP: {cep}'
     
-    email_address_from_excel = data_row['email'] if 'email' in data_row and pd.notna(data_row['email']) else 'EMAIL_NAO_ENCONTRADO'
+    email_address_from_excel = data_row['mail'] if 'mail' in data_row and pd.notna(data_row['mail']) else 'mail'
 
     email_date_raw, _, email_month_portugues, email_day, email_year, email_date_formatted = email_date_info
     current_day, current_month_portugues, current_year, current_date_formatted = current_date_info
@@ -125,15 +172,15 @@ def generate_document(data_row, email_date_info, current_date_info, due_date_inf
         '[dia email]': str(email_day),
         '[mês email]': email_month_portugues,
         '[ano email]': str(email_year),
-        '[email]': email_address_from_excel,
+        '[r-mail]': email_address_from_excel,
 
         '[valor numérico]': f'{total:.2f}'.replace('.', ','),
         '[valor por extenso]': number_to_currency_text_extended(total),
 
-        '[nome do servidor]': funcionario_uppercase,
+        '[nome do servidor upper]': funcionario_uppercase,
+        '[nome do servidor cap]': funcionario_capitalized,
         '[endereço do servidor]': endereco_completo,
         '[CEP do servidor]': cep,
-        'V. Sª.': f'V. Sa. {funcionario_uppercase}',
     }
 
     for paragraph in document.paragraphs:
@@ -142,16 +189,19 @@ def generate_document(data_row, email_date_info, current_date_info, due_date_inf
             run_prefix = paragraph.add_run('Ilmo(a) Senhor(a):\n')
             run_prefix.bold = False
             run_name = paragraph.add_run(funcionario_capitalized)
-            run_name.bold = True
+            run_name.bold = False
+            run_name.font.size = Pt(12)
+            run_name.font.name = 'Calibri'
             continue
 
-        if 'Informamos que notificação semelhante foi enviada ao email cadastrado no sistema ([email]), em' in paragraph.text:
+        if 'Informamos que notificação semelhante foi enviada ao email cadastrado no sistema ([r-mail]), em' in paragraph.text:
             # Criar uma nova lista de runs para reconstruir o parágrafo
             new_runs = []
             temp_text = paragraph.text
             
+            
             # Encontrar a posição do placeholder do email e da data
-            email_placeholder = '[email]'
+            email_placeholder = '[r-mail]'
             date_placeholder = 'em 20 de [mês atual] de [ano atual].'
 
             # Dividir o texto do parágrafo em partes antes, durante e depois dos placeholders
@@ -164,26 +214,17 @@ def generate_document(data_row, email_date_info, current_date_info, due_date_inf
                     new_runs.append(f'em {email_date_formatted}.')
                 else:
                     new_runs.append(part)
-            
-            # Limpar o parágrafo e adicionar os novos runs com a formatação original
-            paragraph.clear()
-            for run_text in new_runs:
-                run = paragraph.add_run(run_text)
-                # Tenta copiar a formatação dos runs originais (simplificado, pode ser melhorado)
-                for original_run in paragraph.runs: # Isso não funciona diretamente, precisaria de uma lógica mais complexa
-                    pass # Por simplicidade, vamos apenas adicionar o texto por enquanto
-            continue
 
         for key, value in replacements.items():
             if key in paragraph.text:
-                replace_text_in_paragraph(paragraph, key, value)
+                replace_text_in_paragraph(paragraph, key, value,)
 
-    output_filename = f'{funcionario_raw.replace(" ", "_")}.docx'
+    output_filename = f'{funcionario_raw.replace(" ", " ")}.docx'
     document.save(output_filename)
     print(f'Documento gerado: {output_filename}')
 
 if __name__ == '__main__':
-    ods_path = 'teste.ods'
+    ods_path = 'teste.ods' # arquivo de entrada (excel)
     pdf_directory = '.' 
     
     today = datetime.now()
@@ -231,7 +272,7 @@ if __name__ == '__main__':
     print(f"\n--- Iniciando geração de documentos ---")
     for index, row in df.iterrows():
         nro_funcional = row['Nro Funcional']
-        email_address_from_excel = row['email'] if 'email' in row and pd.notna(row['email']) else 'EMAIL_NAO_ENCONTRADO'
+        email_address_from_excel = row['mail'] if 'mail' in row and pd.notna(row['mail']) else 'r-mail'
 
         if nro_funcional in pdf_map:
             current_pdf_path = os.path.join(pdf_directory, pdf_map[nro_funcional])
@@ -242,6 +283,6 @@ if __name__ == '__main__':
         else:
             # Se não houver PDF, ainda podemos gerar o documento, mas com placeholders para data do email
             print(f"Aviso: Nenhum PDF de email encontrado para o funcionário: {row['Funcionário']} (Nro Funcional: {nro_funcional}). Gerando documento com data de email padrão.")
-            email_date_info = ('DATA_NAO_ENCONTRADA', email_address_from_excel, 'MES_NAO_ENCONTRADO', 'DIA_NAO_ENCONTRADO', 'ANO_NAO_ENCONTRADO', 'DATA_NAO_ENCONTRADA')
+            email_date_info = ('dia de mês de ano', email_address_from_excel, 'mês', 'dia', 'ano', 'dia de mês de ano')
             generate_document(row, email_date_info, current_date_info, due_date_info, template_path='template.docx')
 
