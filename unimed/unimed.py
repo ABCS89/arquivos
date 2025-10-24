@@ -42,7 +42,7 @@ def extract_info_from_pdf_content(pdf_content):
         email_month_portugues = 'mês'
         email_day = 'dia'
         email_year = 'ano'
-        # email_date_formatted = 'dia de mês de ano'
+        email_date_formatted = 'dia de mês de ano'
 
     return email_date, 'EMAIL_DO_PDF_REMOVIDO', email_month_portugues, email_day, email_year, email_date_formatted
 
@@ -78,12 +78,99 @@ def capitalize_name(name):
     return ' '.join([word.capitalize() for word in name.lower().split()])
 
 def replace_text_in_paragraph(paragraph, key, value):
-    if key in paragraph.text:
-        for run in paragraph.runs:
-            if key in run.text:
-                run.text = run.text.replace(key, str(value))
-                return 
-        paragraph.text = paragraph.text.replace(key, str(value))
+    """
+    Substitui uma chave (placeholder) por um valor em um parágrafo do python-docx,
+    preservando formatação mesmo que o placeholder não esteja em um run específico.
+    """
+
+    if key not in paragraph.text:
+        return  # nada a substituir
+
+    # Tenta substituir apenas dentro do run que contém o placeholder
+    for run in paragraph.runs:
+        if key in run.text:
+            run.text = run.text.replace(key, str(value))
+            return  # terminou com sucesso
+
+    # Se chegou aqui, o placeholder não estava dentro de um run específico.
+    # Vamos então substituir o texto inteiro, mas mantendo a formatação base.
+    new_text = paragraph.text.replace(key, str(value))
+
+    # Salva formatação base do primeiro run (se existir)
+    if paragraph.runs:
+        base_run = paragraph.runs[0]
+        base_font_name = base_run.font.name
+        base_font_size = base_run.font.size
+        base_bold = base_run.bold
+        base_italic = base_run.italic
+    else:
+        base_font_name = None
+        base_font_size = None
+        base_bold = None
+        base_italic = None
+
+    # Limpa o conteúdo anterior do parágrafo
+    paragraph.clear()
+
+    # Cria novo run com o texto substituído
+    new_run = paragraph.add_run(new_text)
+
+    # Aplica a formatação base (quando existir)
+    if base_font_name:
+        new_run.font.name = base_font_name
+    if base_font_size:
+        new_run.font.size = base_font_size
+    if base_bold is not None:
+        new_run.bold = base_bold
+    if base_italic is not None:
+        new_run.italic = base_italic
+
+def replace_paragraph_text_preserve_style(paragraph, new_text):
+    """
+    Substitui todo o texto do parágrafo por new_text preservando
+    a formatação do primeiro run (fonte, tamanho, negrito, itálico).
+    """
+    # Determina formatação base (do primeiro run que tiver formatação explícita)
+    base_font_name = True
+    base_font_size = True
+    base_bold = None
+    base_italic = None
+
+    if paragraph.runs:
+        # Tenta achar um run com formatação explícita, senão usa o primeiro
+        base_run = paragraph.runs[0]
+        for r in paragraph.runs:
+            # usa o primeiro run que tenha alguma propriedade configurada
+            if (r.font.name or r.font.size or r.bold is not None or r.italic is not None):
+                base_run = r
+                break
+        base_font_name = base_run.font.name
+        base_font_size = base_run.font.size
+        base_bold = base_run.bold
+        base_italic = base_run.italic
+
+    # Limpa e cria novo run com o texto substituído
+    paragraph.clear()
+    run = paragraph.add_run(new_text)
+
+    # Aplica formatação base (quando disponível)
+    if base_font_name:
+        try:
+            run.font.name = base_font_name
+        except Exception:
+            pass
+    if base_font_size:
+        try:
+            run.font.size = base_font_size
+        except Exception:
+            pass
+    # bold/italic podem ser True/False/None
+    if base_bold is not None:
+        run.bold = base_bold
+    if base_italic is not None:
+        run.italic = base_italic
+
+
 
 def generate_document(data_row, email_date_info, current_date_info, due_date_info, template_path='template.docx'):
     document = Document(template_path)
@@ -96,14 +183,14 @@ def generate_document(data_row, email_date_info, current_date_info, due_date_inf
     
     endereco_rua = data_row['Endereço'] if 'Endereço' in data_row and pd.notna(data_row['Endereço']) else ''
     bairro = data_row['Bairro'] if 'Bairro' in data_row and pd.notna(data_row['Bairro']) else ''
-    complemento = data_row['complemento'] if 'complemento' in data_row and pd.notna(data_row['complemento']) else ''
+    complemento = data_row['Complemento'] if 'Complemento' in data_row and pd.notna(data_row['Complemento']) else ''
     cep = data_row['CEP'] if 'CEP' in data_row and pd.notna(data_row['CEP']) else ''
 
     endereco_completo = endereco_rua
     if complemento: 
         endereco_completo += f', – {complemento}'
     if bairro:
-        endereco_completo += f', – {bairro}'
+        endereco_completo += f' – {bairro}'
         # endereco_completo += f' - CEP: {cep}'
     
     email_address_from_excel = data_row['mail'] if 'mail' in data_row and pd.notna(data_row['mail']) else 'mail'
@@ -152,6 +239,7 @@ def generate_document(data_row, email_date_info, current_date_info, due_date_inf
             new_runs = []
             temp_text = paragraph.text
             
+            
             # Encontrar a posição do placeholder do email e da data
             email_placeholder = '[r-mail]'
             date_placeholder = 'em 20 de [mês atual] de [ano atual].'
@@ -166,19 +254,10 @@ def generate_document(data_row, email_date_info, current_date_info, due_date_inf
                     new_runs.append(f'em {email_date_formatted}.')
                 else:
                     new_runs.append(part)
-            
-            # Limpar o parágrafo e adicionar os novos runs com a formatação original
-            paragraph.clear()
-            for run_text in new_runs:
-                run = paragraph.add_run(run_text)
-                # Tenta copiar a formatação dos runs originais (simplificado, pode ser melhorado)
-                for original_run in paragraph.runs: # Isso não funciona diretamente, precisaria de uma lógica mais complexa
-                    pass # Por simplicidade, vamos apenas adicionar o texto por enquanto
-            continue
 
         for key, value in replacements.items():
             if key in paragraph.text:
-                replace_text_in_paragraph(paragraph, key, value)
+                replace_text_in_paragraph(paragraph, key, value,)
 
     output_filename = f'{funcionario_raw.replace(" ", " ")}.docx'
     document.save(output_filename)
