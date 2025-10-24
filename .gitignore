@@ -20,3 +20,8 @@
 /converter_PDF_XLSX/*.docx
 
 
+*.ods
+*.xlsx
+*.csv
+*.pdf
+*.docx
