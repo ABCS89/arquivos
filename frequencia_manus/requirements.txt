@@ -1,0 +1,5 @@
+pandas
+camelot-py[cv]
+fpdf
+pdfminer.six
+

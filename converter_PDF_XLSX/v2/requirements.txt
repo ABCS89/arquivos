@@ -1,0 +1,7 @@
+pdfplumber>=0.7.6
+pandas>=1.5.0
+python-dateutil>=2.8.2
+reportlab>=3.6.12
+fuzzywuzzy>=0.18.0
+python-Levenshtein>=0.20.9
+regex>=2023.8.8
