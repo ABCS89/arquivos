@@ -21,3 +21,6 @@ das ocorrencias/descrição em específico os "minutos perdidos" serão contabil
 2 - Esse passo só será possivel acontecer com duas variaveis, o arquivo gerado na seção anterior, e o arquivo retificação de frequencia, que será fornecido após a conferencia (dias depois) e o arquivo será um memorando onde terá a retificação, e este arquivo é o que pode ter a maior variação possivel, mas todos eles tem os mesmos dados de retificação da frequencia.
 
 a saída pode ser um arquivo PDF que confirma o que foi enviado no memorando de retificação de frequencia.
+
+
+eu tenho que rodar este código python no meu local, sendo que não tenho WSL/linux, tenho somente o gitbash e não posso instalar nada neste windows

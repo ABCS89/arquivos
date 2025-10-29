@@ -1,0 +1,8 @@
+pandas
+reportlab
+# Para extrair dados de PDF, o usuário precisará de uma destas:
+tabula-py # Se o Java estiver instalado (melhor para tabelas)
+pdfplumber # Se o tabula-py não funcionar (mais simples)
+# O usuário deve escolher um e instalar as dependências necessárias.
+# Sugestão:
+pdfplumber
