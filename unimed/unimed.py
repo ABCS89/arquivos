@@ -188,7 +188,7 @@ def generate_document(data_row, email_date_info, current_date_info, due_date_inf
 
     endereco_completo = endereco_rua
     if complemento: 
-        endereco_completo += f', – {complemento}'
+        endereco_completo += f' – {complemento}'
     if bairro:
         endereco_completo += f' – {bairro}'
         # endereco_completo += f' - CEP: {cep}'
