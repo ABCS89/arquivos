@@ -83,3 +83,24 @@ Solicitação recusada. Informamos que não é possível atender à solicitaçã
 # Declaração de união estável
 ## Seguir os passos do seguinte link para ter uma união estável validada em cartório.
 > - https://www.jusbrasil.com.br/modelos-pecas/modelo-declaracao-de-uniao-estavel/365278086
+
+
+
+# Imposto de renda 2026 (IRRF)
+
+Boa Tarde, 
+
+Redução adicional do imposto (a partir de janeiro / 2026)
+
+Com a Lei nº 15.270/2025, há um redutor aplicado após o cálculo pelo IRRF tradicional:
+
+Rendimentos tributáveis até R$ 5.000,00:
+Redução de R$ 312,89, de modo que o imposto devido ficará igual a zero.
+
+Rendimentos tributáveis de R$ 5.000,01 até R$ 7.350,00:
+Redução calculada por:
+R$ 978,62 – (0,133145 × rendimentos tributáveis)
+(o valor da redução decresce até zerar em R$ 7.350,00).
+
+Acima de R$ 7.350,00:
+Não há redução extra — aplica-se o IRRF tradicional calculado pela tabela acima.
