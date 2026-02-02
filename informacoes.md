@@ -104,3 +104,82 @@ R$ 978,62 – (0,133145 × rendimentos tributáveis)
 
 Acima de R$ 7.350,00:
 Não há redução extra — aplica-se o IRRF tradicional calculado pela tabela acima.
+
+
+# Esclarecimento de holerite.
+
+Boa tarde
+
+ 
+
+em atenção à sua solicitação temos a esclarecer:
+
+ 
+
+Todos os descontos informados no holerite de férias são provisionamentos que podem ou não ser efetivados no holerite do mês correspondente e todos os vencimentos informados são adiantamentos.
+
+No holerite correspondente, são informados todos os descontos efetivamente realizados com o INSS e o IRRF provisionados em férias discriminados.
+
+ 
+
+No seu caso,
+
+ 
+
+Provisionamentos:
+5.145 - INSS - FÉRIAS ANTECIPADAS - S/ REC.: 419,08
+5.148 - IRRF - FÉRIAS ANTECIPADAS: 167,79
+5.501 - EMPRESTIMO CONSIG CEF: 649,20
+
+ 
+
+Descontos em janeiro/2026:
+O INSS e o IRRF foram recalculados:
+
+5.135 - INSS:  26,03 considerando os valores que não foram adiantados.
+5.142 - INSS SOBRE FÉRIAS:  359,52 considerando o proporcional relativo a 27 dias de férias antecipados.
+5.152 - DIFERENÇA INSS:  15,63 considerando o total da base previdenciária, descontados os valores já apontados nas rubricas anteriores.
+
+
+5.248 IRRF RECOLHIDO NAS FÉRIAS ANTECIPADAS 151,01 considerando o proporcional relativo a 27 dias de férias antecipados, esse valor foi devolvido na verba de código 62.
+
+
+5.501 EMPRESTIMO CONSIG CEF 649,20 consignado provisionado e efetivamente descontado.
+
+5.187 DESCONTO DE FÉRIAS ANTECIPADAS 2.805,71 proporcional do líquido adiantado relativo a 27 dias de férias antecipados.
+
+ 
+
+Vencimentos antecipados:
+0039 - INSALUBRIDADE 303,60
+0087 - SALÁRIO FÉRIAS ANTECIPADAS 2.793,91
+0521 - 1/3 FÉRIAS ANTECIPADAS 1.088,38
+1.523 - INTEGRAÇÃO PRÊMIO ASSIDUIDADE 167,63
+
+Os adiantamentos correspondem a 30 dias trabalho e somam 4.353,52. 
+
+ 
+
+Vencimentos de janeiro/2026:
+Em janeiro foram 27 dias de férias, portanto 3.918,17, indicados na verba 21 do holerite de janeiro.
+
+Note que os lançamentos da verba 21 são a soma de:
+
+273,24 de assiduidade
+
+2514,52 de salário
+
+979,55 de 1/3 de férias
+
+150,87 de assiduidade
+
+ 
+
+indicados nas verbas 
+
+0039 - INSALUBRIDADE
+0087 - SALÁRIO FÉRIAS ANTECIPADAS
+0521 - 1/3 FÉRIAS ANTECIPADAS
+1.523 - INTEGRAÇÃO PRÊMIO ASSIDUIDADE
+
+estão apenas a diferença entre o valor total e o antecipado, por isso o valor menor. Mas, no total, considerando o valor antecipado e o correspondente aos 4 dias de janeiro, todas as verbas foram pagas em sua integralidade.
