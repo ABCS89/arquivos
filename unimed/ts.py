@@ -28,23 +28,47 @@ def extract_text_from_pdf(pdf_path):
     return text
 
 def extract_info_from_pdf_content(pdf_content):
-    email_date_match = re.search(r'Data (\d{4}-\d{2}-\d{2})', pdf_content)
-    
-    email_date = email_date_match.group(1) if email_date_match else 'dia de mês de ano'
-    
-    if email_date != 'dia de mês de ano':
-        date_obj = pd.to_datetime(email_date)
-        email_month_portugues = meses_portugues[date_obj.month]
+    """
+    Extrai a data do e-mail a partir do texto do PDF no formato brasileiro
+    (DD/MM/YYYY) e devolve os valores já prontos para uso no DOCX.
+    """
+
+    # Procura: Data 09/02/2026 (ignora hora, se existir)
+    match = re.search(
+        r'Data\s+(\d{2}/\d{2}/\d{4})',
+        pdf_content
+    )
+
+    if match:
+        email_date_raw = match.group(1)
+
+        # Conversão SEGURA (NÃO inverte dia/mês)
+        date_obj = datetime.strptime(email_date_raw, '%d/%m/%Y')
+
         email_day = date_obj.day
+        email_month_portugues = meses_portugues[date_obj.month]
         email_year = date_obj.year
-        email_date_formatted = f'{email_day} de {email_month_portugues} de {email_year}'
+
+        email_date_formatted = (
+            f'{email_day} de {email_month_portugues} de {email_year}'
+        )
     else:
-        email_month_portugues = 'mês'
+        # Fallback caso o PDF não tenha data
+        email_date_raw = 'dia de mês de ano'
         email_day = 'dia'
+        email_month_portugues = 'mês'
         email_year = 'ano'
         email_date_formatted = 'dia de mês de ano'
 
-    return email_date, 'EMAIL_DO_PDF_REMOVIDO', email_month_portugues, email_day, email_year, email_date_formatted
+    return (
+        email_date_raw,
+        'EMAIL_DO_PDF_REMOVIDO',
+        email_month_portugues,
+        email_day,
+        email_year,
+        email_date_formatted
+    )
+
 
 def number_to_currency_text_extended(number):
     try:
