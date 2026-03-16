@@ -26,3 +26,4 @@
 *.pdf
 *.docx
 unimed/template/.~lock.template.docx\#
+*.env

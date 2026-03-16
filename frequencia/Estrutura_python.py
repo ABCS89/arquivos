@@ -1,0 +1,12 @@
+Estrutura_python
+
+imports
+normalizar_ocorrencia
+extrair_texto_pdf
+corrigir_quebras
+reconstruir_linhas_rh
+parse_frequencia
+parse_rh
+comparar
+colorir_excel
+main

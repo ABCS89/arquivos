@@ -40,41 +40,43 @@ def parse_frequencia(texto):
     dados = []
     linhas = texto.split("\n")
 
-    padrao = re.compile(
-        r'(\d{2}\.\d{3}-\d)\s+(.+?)\s+(Férias regulamentares|Frequência normal)\s*(\d{2}/\d{2}/\d{4})?\s*([\d,]+)?',
-        re.I
+    funcional_atual = None
+    nome_atual = None
+
+    padrao_funcionario = re.compile(r'(\d{2}\.\d{3}-\d)\s+([A-ZÁ-Ú\s]+)', re.I)
+
+    padrao_ocorrencia = re.compile(
+        r'([A-ZÁ-Úa-zá-ú\s]+)\s+(\d{2}/\d{2}/\d{4})\s+([\d,]+)'
     )
 
     for linha in linhas:
 
-        m = padrao.search(linha)
+        m_func = padrao_funcionario.search(linha)
 
-        if not m:
+        if m_func:
+
+            funcional_atual = m_func.group(1)
+            nome_atual = m_func.group(2).strip()
+
             continue
 
-        funcional = m.group(1)
-        nome = m.group(2).strip()
-        ocorrencia = m.group(3).strip()
+        m_oc = padrao_ocorrencia.search(linha)
 
-        data = m.group(4)
-        qtd = m.group(5)
+        if m_oc and funcional_atual:
 
-        if ocorrencia.lower() == "frequência normal":
-            continue
+            ocorrencia = m_oc.group(1).strip().upper()
 
-        if data:
-            data = datetime.strptime(data, "%d/%m/%Y")
+            data = datetime.strptime(m_oc.group(2), "%d/%m/%Y")
 
-        if qtd:
-            qtd = float(qtd.replace(",", "."))
+            qtd = float(m_oc.group(3).replace(",", "."))
 
-        dados.append({
-            "funcional": funcional,
-            "nome": nome,
-            "ocorrencia": ocorrencia.upper(),
-            "data": data,
-            "qtd_secretaria": qtd
-        })
+            dados.append({
+                "funcional": funcional_atual,
+                "nome": nome_atual,
+                "ocorrencia": ocorrencia,
+                "data": data,
+                "qtd_secretaria": qtd
+            })
 
     return pd.DataFrame(dados)
 
@@ -89,8 +91,7 @@ def parse_rh(texto):
     linhas = texto.split("\n")
 
     padrao = re.compile(
-        r'(\d{2}\.\d{3}-\d)\s+(.+?)\s+(\d{2}/\d{2}/\d{4})\s+(\d{2}/\d{2}/\d{4})\s+(\d+)\s+(Férias Regulamentares)',
-        re.I
+        r'(\d{2}\.\d{3}-\d)\s+(.+?)\s+(\d{2}/\d{2}/\d{4})\s+(\d{2}/\d{2}/\d{4})\s+(\d+)\s+(.+)'
     )
 
     for linha in linhas:
@@ -101,13 +102,16 @@ def parse_rh(texto):
             continue
 
         funcional = m.group(1)
+
         nome = m.group(2).strip()
 
         data_inicio = datetime.strptime(m.group(3), "%d/%m/%Y")
+
         data_fim = datetime.strptime(m.group(4), "%d/%m/%Y")
 
         qtd = int(m.group(5))
-        ocorrencia = m.group(6).upper()
+
+        ocorrencia = m.group(6).strip().upper()
 
         dados.append({
             "funcional": funcional,
@@ -148,49 +152,78 @@ def comparar(df_freq, df_rh):
 
     resultados = []
 
-    for _, rh in df_rh.iterrows():
+    # secretaria
+    freq_group = df_freq.groupby(
+        ["funcional","data","ocorrencia"]
+    ).agg(
+        dias_secretaria=("qtd_secretaria","sum")
+    ).reset_index()
 
-        funcional = rh["funcional"]
+    # RH
+    df_rh["data"] = df_rh["data_inicio"]
 
-        dias_mes = dias_no_mes(
-            rh["data_inicio"],
-            rh["data_fim"]
-        )
+    rh_group = df_rh.groupby(
+        ["funcional","data","ocorrencia"]
+    ).agg(
+        dias_rh=("qtd_rh","sum")
+    ).reset_index()
 
-        freq = df_freq[df_freq["funcional"] == funcional]
+    # merge
+    merged = pd.merge(
+        rh_group,
+        freq_group,
+        on=["funcional","data","ocorrencia"],
+        how="outer"
+    )
 
-        if not freq.empty:
+    merged = merged.fillna(0)
 
-            qtd_secretaria = freq.iloc[0]["qtd_secretaria"]
-            ocorrencia_secretaria = freq.iloc[0]["ocorrencia"]
-
-        else:
-
-            qtd_secretaria = 0
-            ocorrencia_secretaria = "NÃO ENCONTRADO"
+    for _, row in merged.iterrows():
 
         status_dias = "OK"
         status_ocorrencia = "OK"
 
-        if dias_mes != qtd_secretaria:
+        if row["dias_rh"] != row["dias_secretaria"]:
             status_dias = "DIVERGENTE"
 
-        if rh["ocorrencia"] != ocorrencia_secretaria:
-            status_ocorrencia = "DIVERGENTE"
-
         resultados.append({
-            "funcional": funcional,
-            "nome": rh["nome"],
-            "ocorrencia_rh": rh["ocorrencia"],
-            "ocorrencia_secretaria": ocorrencia_secretaria,
-            "dias_rh_no_mes": dias_mes,
-            "dias_secretaria": qtd_secretaria,
-            "status_dias": status_dias,
-            "status_ocorrencia": status_ocorrencia
+
+            "funcional": row["funcional"],
+            "data": row["data"],
+            "ocorrencia": row["ocorrencia"],
+            "dias_rh": row["dias_rh"],
+            "dias_secretaria": row["dias_secretaria"],
+            "status_dias": status_dias
         })
 
     return pd.DataFrame(resultados)
 
+# ---------------------------------------------------
+# CALCULAR DIAS DENTRO DO MES
+# ---------------------------------------------------
+
+def normalizar_ocorrencia(oc):
+
+    oc = oc.upper().strip()
+
+    MAPA = {
+
+        "FALTAS EFETIVOS": "FALTA",
+        "FALTA EFETIVOS": "FALTA",
+        "FALTA": "FALTA",
+
+        "ABONO ELEITORAL": "ABONO ELEITORAL",
+        "ABONO": "ABONO",
+
+        "TRATAMENTO DE SAÚDE": "TRATAMENTO DE SAUDE",
+        "TRATAMENTO DE SAUDE": "TRATAMENTO DE SAUDE",
+
+        "AUXILIO DOENÇA": "AUXILIO DOENCA",
+        "AUXILIO DOENCA": "AUXILIO DOENCA",
+
+    }
+
+    return MAPA.get(oc, oc)
 
 # ---------------------------------------------------
 # COLORIR EXCEL
@@ -205,19 +238,15 @@ def colorir_excel(arquivo):
 
     for row in ws.iter_rows(min_row=2):
 
-        status_dias = row[6].value
-        status_ocorrencia = row[7].value
+        status_dias = row[5].value
 
         if status_dias == "DIVERGENTE":
+
+            row[3].fill = vermelho
             row[4].fill = vermelho
             row[5].fill = vermelho
 
-        if status_ocorrencia == "DIVERGENTE":
-            row[2].fill = vermelho
-            row[3].fill = vermelho
-
     wb.save(arquivo)
-
 
 # ---------------------------------------------------
 # EXECUÇÃO
@@ -228,13 +257,20 @@ def main():
     pasta = Path(".")
 
     freq_pdf = list(pasta.glob("*frequencia_secretaria*.pdf"))[0]
+
     rh_pdf = list(pasta.glob("*relatorio_rh*.pdf"))[0]
 
     texto_freq = extrair_texto_pdf(freq_pdf)
+
     texto_rh = extrair_texto_pdf(rh_pdf)
 
     df_freq = parse_frequencia(texto_freq)
+
     df_rh = parse_rh(texto_rh)
+
+    print("Linhas secretaria:", len(df_freq))
+
+    print("Linhas RH:", len(df_rh))
 
     resultado = comparar(df_freq, df_rh)
 
@@ -245,6 +281,7 @@ def main():
     colorir_excel(arquivo_saida)
 
     print("\nConferência finalizada!\n")
+
     print(resultado)
 
 
