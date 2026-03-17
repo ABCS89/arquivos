@@ -28,34 +28,47 @@ def extract_text_from_pdf(pdf_path):
     return text
 
 def extract_info_from_pdf_content(pdf_content):
-    # Procura pela data no formato AAAA-MM-DD
-    email_date_match = re.search(r'Data (\d{4}-\d{2}-\d{2})', pdf_content)
-    
-    # REGEX para capturar todos os e-mails
-    email_pattern = r'[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}'
-    todos_emails = re.findall(email_pattern, pdf_content)
-    
-    # Filtra para ignorar o e-mail do remetente (DRH)
-    emails_filtrados = [e for e in todos_emails if 'drh.pagamento' not in e.lower()]
-    
-    # Define o e-mail do servidor (o primeiro que sobrar após o filtro)
-    email_pdf_extraido = emails_filtrados[0] if emails_filtrados else None
-    
-    email_date = email_date_match.group(1) if email_date_match else 'dia de mês de ano'
-    
-    if email_date != 'dia de mês de ano':
-        date_obj = pd.to_datetime(email_date)
-        email_month_portugues = meses_portugues[date_obj.month]
+    """
+    Extrai a data do e-mail a partir do texto do PDF no formato brasileiro
+    (DD/MM/YYYY) e devolve os valores já prontos para uso no DOCX.
+    """
+
+    # Procura: Data 09/02/2026 (ignora hora, se existir)
+    match = re.search(
+        r'Data\s+(\d{2}/\d{2}/\d{4})',
+        pdf_content
+    )
+
+    if match:
+        email_date_raw = match.group(1)
+
+        # Conversão SEGURA (NÃO inverte dia/mês)
+        date_obj = datetime.strptime(email_date_raw, '%d/%m/%Y')
+
         email_day = date_obj.day
+        email_month_portugues = meses_portugues[date_obj.month]
         email_year = date_obj.year
-        email_date_formatted = f'{email_day} de {email_month_portugues} de {email_year}'
+
+        email_date_formatted = (
+            f'{email_day} de {email_month_portugues} de {email_year}'
+        )
     else:
-        email_month_portugues = 'mês'
+        # Fallback caso o PDF não tenha data
+        email_date_raw = 'dia de mês de ano'
         email_day = 'dia'
+        email_month_portugues = 'mês'
         email_year = 'ano'
         email_date_formatted = 'dia de mês de ano'
 
-    return email_date, 'EMAIL_DO_PDF_REMOVIDO', email_month_portugues, email_day, email_year, email_date_formatted
+    return (
+        email_date_raw,
+        'EMAIL_DO_PDF_REMOVIDO',
+        email_month_portugues,
+        email_day,
+        email_year,
+        email_date_formatted
+    )
+
 
 def number_to_currency_text_extended(number):
     try:
@@ -183,7 +196,6 @@ def replace_paragraph_text_preserve_style(paragraph, new_text):
 
 
 
-
 def generate_document(data_row, email_date_info, current_date_info, due_date_info, template_path='template.docx'):
     document = Document(template_path)
 
@@ -196,11 +208,12 @@ def generate_document(data_row, email_date_info, current_date_info, due_date_inf
     endereco_rua = data_row['Endereço'] if 'Endereço' in data_row and pd.notna(data_row['Endereço']) else ''
     bairro = data_row['Bairro'] if 'Bairro' in data_row and pd.notna(data_row['Bairro']) else ''
     complemento = data_row['Complemento'] if 'Complemento' in data_row and pd.notna(data_row['Complemento']) else ''
+    cidade = data_row['cidade'] if 'cidade' in data_row and pd.notna(data_row['cidade']) else ''
     cep = data_row['CEP'] if 'CEP' in data_row and pd.notna(data_row['CEP']) else ''
 
     endereco_completo = endereco_rua
     if complemento: 
-        endereco_completo += f' – {complemento}'
+        endereco_completo += f', – {complemento}'
     if bairro:
         endereco_completo += f' – {bairro}'
         # endereco_completo += f' - CEP: {cep}'
@@ -211,7 +224,6 @@ def generate_document(data_row, email_date_info, current_date_info, due_date_inf
     current_day, current_month_portugues, current_year, current_date_formatted = current_date_info
     due_day, due_month_portugues, due_year, due_date_formatted = due_date_info
 
-    
     replacements = {
         '[dia atual]': str(current_day),
         '[mês atual]': current_month_portugues,
@@ -233,6 +245,7 @@ def generate_document(data_row, email_date_info, current_date_info, due_date_inf
         '[nome do servidor upper]': funcionario_uppercase,
         '[nome do servidor cap]': funcionario_capitalized,
         '[endereço do servidor]': endereco_completo,
+        '[cidade]' : cidade,
         '[CEP do servidor]': cep,
     }
 
@@ -247,7 +260,6 @@ def generate_document(data_row, email_date_info, current_date_info, due_date_inf
             run_name.font.name = 'Calibri'
             continue
 
-        # 2. Correção de E-mail e Data da Notificação Anterior
         if 'Informamos que notificação semelhante foi enviada ao email cadastrado no sistema ([r-mail]), em' in paragraph.text:
             # Criar uma nova lista de runs para reconstruir o parágrafo
             new_runs = []
@@ -267,17 +279,25 @@ def generate_document(data_row, email_date_info, current_date_info, due_date_inf
                 elif part == date_placeholder:
                     new_runs.append(f'em {email_date_formatted}.')
                 else:
-                    new_runs.append(part)        # 3. Substituições Gerais
-        for key, value in replacements.items():
-            replace_text_in_paragraph(paragraph, key, value)
+                    new_runs.append(part)
 
-    output_filename = f'{funcionario_raw}.docx'
-    document.save(output_filename)
-    print(f'Sucesso: {output_filename}')
+        for key, value in replacements.items():
+            if key in paragraph.text:
+                replace_text_in_paragraph(paragraph, key, value,)
+
+        output_filename = f'{funcionario_raw}.docx'
+        output_path = os.path.join('output', output_filename)
+
+        document.save(output_path)
 
 if __name__ == '__main__':
-    ods_path = 'teste.ods' # arquivo de entrada (excel)
-    pdf_directory = '.' 
+    output_directory = 'output'
+
+    if not os.path.exists(output_directory):
+        os.makedirs(output_directory)
+
+    ods_path = 'template/teste.ods' # arquivo de entrada (excel)
+    pdf_directory = 'template' 
     
     today = datetime.now()
     current_month_portugues = meses_portugues[today.month]
@@ -291,27 +311,99 @@ if __name__ == '__main__':
 
     df = pd.read_excel(ods_path, engine='odf')
 
-    pdf_files = [f for f in os.listdir(pdf_directory) if f.endswith('email.pdf')]
+    pdf_files = [f for f in os.listdir(pdf_directory) if f.endswith('.pdf')]
     
-    pdf_files = [f for f in os.listdir('.') if f.endswith('email.pdf')]
-    
-    # Mapeamento
     pdf_map = {}
-    for _, row in df.iterrows():
-        n_planilha = normalize_name_for_comparison(str(row['Funcionário']))
-        for pf in pdf_files:
-            n_pdf = normalize_name_for_comparison(pf.replace('_email.pdf', '').replace('_TANCREDO', ''))
-            if n_planilha in n_pdf or n_pdf.startswith(n_planilha):
-                pdf_map[row['Nro Funcional']] = pf
-                break
+    for index, row in df.iterrows():
+        nro_funcional = row['Nro Funcional']
+        email_address_from_excel = row['mail'] if 'mail' in row and pd.notna(row['mail']) else 'r-mail'
 
-    for _, row in df.iterrows():
-        nro = row['Nro Funcional']
-        if nro in pdf_map:
-            content = extract_text_from_pdf(pdf_map[nro])
-            e_raw, e_mail, e_m, e_d, e_y, e_fmt = extract_info_from_pdf_content(content)
-            email_info = (e_raw, e_mail, e_m, e_d, e_y, e_fmt)
+        # =========================
+        # NOVA REGRA DA CONDIÇÃO
+        # =========================
+        condicao = ''
+        if 'condição' in row and pd.notna(row['condição']):
+            condicao = str(row['condição']).strip().lower()
+
+        if condicao == 'não enviar':
+            print(f"Pulando {row['Funcionário']} (condição: não enviar)")
+            continue
+
+        elif condicao == 'desligado':
+            template_escolhido = 'template/template_desligado.docx'
+            print(f"{row['Funcionário']} → usando template DESLIGADO")
+
         else:
-            email_info = ('dia de mês de ano', None, 'mês', 'dia', 'ano', 'dia de mês de ano')
-        
-        generate_document(row, email_info, cur_info, due_info)
+            template_escolhido = 'template/template.docx'
+            print(f"{row['Funcionário']} → usando template PADRÃO")
+
+    # =========================
+    # RESTO DO PROCESSO
+    # =========================
+    if nro_funcional in pdf_map:
+        current_pdf_path = os.path.join(pdf_directory, pdf_map[nro_funcional])
+        pdf_content = extract_text_from_pdf(current_pdf_path)
+        email_date_raw, _, email_month_portugues, email_day, email_year, email_date_formatted = extract_info_from_pdf_content(pdf_content)
+        email_date_info = (email_date_raw, email_address_from_excel, email_month_portugues, email_day, email_year, email_date_formatted)
+
+        generate_document(
+            row,
+            email_date_info,
+            current_date_info,
+            due_date_info,
+            template_path=template_escolhido
+        )
+
+    else:
+        print(f"Aviso: Nenhum PDF encontrado para {row['Funcionário']}. Gerando com data padrão.")
+
+        email_date_info = ('dia de mês de ano', email_address_from_excel, 'mês', 'dia', 'ano', 'dia de mês de ano')
+
+        generate_document(
+            row,
+            email_date_info,
+            current_date_info,
+            due_date_info,
+            template_path=template_escolhido
+        )
+
+print(f"\n--- Iniciando geração de documentos ---")
+
+for index, row in df.iterrows():
+    nro_funcional = row['Nro Funcional']
+    email_address_from_excel = row['mail'] if 'mail' in row and pd.notna(row['mail']) else 'r-mail'
+
+    # REGRA DA CONDIÇÃO
+    condicao = ''
+    if 'condição' in row and pd.notna(row['condição']):
+        condicao = str(row['condição']).strip().lower()
+
+    if condicao == 'não enviar':
+        print(f"Pulando {row['Funcionário']} (condição: não enviar)")
+        continue
+
+    elif condicao == 'desligado':
+        template_escolhido = 'template/template_desligado.docx'
+        print(f"{row['Funcionário']} → usando template DESLIGADO")
+
+    else:
+        template_escolhido = 'template/template.docx'
+        print(f"{row['Funcionário']} → usando template PADRÃO")
+
+    # PROCESSAMENTO PDF
+    if nro_funcional in pdf_map:
+        current_pdf_path = os.path.join(pdf_directory, pdf_map[nro_funcional])
+        pdf_content = extract_text_from_pdf(current_pdf_path)
+        email_date_info = extract_info_from_pdf_content(pdf_content)
+    else:
+        print(f"Aviso: Nenhum PDF encontrado para {row['Funcionário']}")
+        email_date_info = ('dia de mês de ano', email_address_from_excel, 'mês', 'dia', 'ano', 'dia de mês de ano')
+
+    # GERAR DOCUMENTO
+    generate_document(
+        row,
+        email_date_info,
+        current_date_info,
+        due_date_info,
+        template_path=template_escolhido
+    )

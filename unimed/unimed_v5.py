@@ -28,23 +28,47 @@ def extract_text_from_pdf(pdf_path):
     return text
 
 def extract_info_from_pdf_content(pdf_content):
-    email_date_match = re.search(r'Data (\d{4}-\d{2}-\d{2})', pdf_content)
-    
-    email_date = email_date_match.group(1) if email_date_match else 'dia de mês de ano'
-    
-    if email_date != 'dia de mês de ano':
-        date_obj = pd.to_datetime(email_date)
-        email_month_portugues = meses_portugues[date_obj.month]
+    """
+    Extrai a data do e-mail a partir do texto do PDF no formato brasileiro
+    (DD/MM/YYYY) e devolve os valores já prontos para uso no DOCX.
+    """
+
+    # Procura: Data 09/02/2026 (ignora hora, se existir)
+    match = re.search(
+        r'Data\s+(\d{2}/\d{2}/\d{4})',
+        pdf_content
+    )
+
+    if match:
+        email_date_raw = match.group(1)
+
+        # Conversão SEGURA (NÃO inverte dia/mês)
+        date_obj = datetime.strptime(email_date_raw, '%d/%m/%Y')
+
         email_day = date_obj.day
+        email_month_portugues = meses_portugues[date_obj.month]
         email_year = date_obj.year
-        email_date_formatted = f'{email_day} de {email_month_portugues} de {email_year}'
+
+        email_date_formatted = (
+            f'{email_day} de {email_month_portugues} de {email_year}'
+        )
     else:
-        email_month_portugues = 'mês'
+        # Fallback caso o PDF não tenha data
+        email_date_raw = 'dia de mês de ano'
         email_day = 'dia'
+        email_month_portugues = 'mês'
         email_year = 'ano'
         email_date_formatted = 'dia de mês de ano'
 
-    return email_date, 'EMAIL_DO_PDF_REMOVIDO', email_month_portugues, email_day, email_year, email_date_formatted
+    return (
+        email_date_raw,
+        'EMAIL_DO_PDF_REMOVIDO',
+        email_month_portugues,
+        email_day,
+        email_year,
+        email_date_formatted
+    )
+
 
 def number_to_currency_text_extended(number):
     try:
@@ -188,7 +212,7 @@ def generate_document(data_row, email_date_info, current_date_info, due_date_inf
 
     endereco_completo = endereco_rua
     if complemento: 
-        endereco_completo += f' – {complemento}'
+        endereco_completo += f', – {complemento}'
     if bairro:
         endereco_completo += f' – {bairro}'
         # endereco_completo += f' - CEP: {cep}'
@@ -259,13 +283,19 @@ def generate_document(data_row, email_date_info, current_date_info, due_date_inf
             if key in paragraph.text:
                 replace_text_in_paragraph(paragraph, key, value,)
 
-    output_filename = f'{funcionario_raw.replace(" ", " ")}.docx'
-    document.save(output_filename)
-    print(f'Documento gerado: {output_filename}')
+        output_filename = f'{funcionario_raw}.docx'
+        output_path = os.path.join('output', output_filename)
+
+        document.save(output_path)
 
 if __name__ == '__main__':
-    ods_path = 'teste.ods' # arquivo de entrada (excel)
-    pdf_directory = '.' 
+    output_directory = 'output'
+
+    if not os.path.exists(output_directory):
+        os.makedirs(output_directory)
+
+    ods_path = 'template/teste.ods' # arquivo de entrada (excel)
+    pdf_directory = 'template' 
     
     today = datetime.now()
     current_month_portugues = meses_portugues[today.month]
@@ -279,7 +309,7 @@ if __name__ == '__main__':
 
     df = pd.read_excel(ods_path, engine='odf')
 
-    pdf_files = [f for f in os.listdir(pdf_directory) if f.endswith('email.pdf')]
+    pdf_files = [f for f in os.listdir(pdf_directory) if f.endswith('.pdf')]
     
     pdf_map = {}
     for index, row in df.iterrows():
@@ -319,10 +349,10 @@ if __name__ == '__main__':
             pdf_content = extract_text_from_pdf(current_pdf_path)
             email_date_raw, _, email_month_portugues, email_day, email_year, email_date_formatted = extract_info_from_pdf_content(pdf_content)
             email_date_info = (email_date_raw, email_address_from_excel, email_month_portugues, email_day, email_year, email_date_formatted)
-            generate_document(row, email_date_info, current_date_info, due_date_info, template_path='template.docx')
+            generate_document(row, email_date_info, current_date_info, due_date_info, template_path='template/template.docx')
         else:
             # Se não houver PDF, ainda podemos gerar o documento, mas com placeholders para data do email
             print(f"Aviso: Nenhum PDF de email encontrado para o funcionário: {row['Funcionário']} (Nro Funcional: {nro_funcional}). Gerando documento com data de email padrão.")
             email_date_info = ('dia de mês de ano', email_address_from_excel, 'mês', 'dia', 'ano', 'dia de mês de ano')
-            generate_document(row, email_date_info, current_date_info, due_date_info, template_path='template.docx')
+            generate_document(row, email_date_info, current_date_info, due_date_info, template_path='template/template.docx')
 

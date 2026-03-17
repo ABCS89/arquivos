@@ -288,7 +288,7 @@ def generate_document(data_row, email_date_info, current_date_info, due_date_inf
     print(f'Documento gerado: {output_filename}')
 
 if __name__ == '__main__':
-    ods_path = 'teste.ods' # arquivo de entrada (excel)
+    ods_path = 'template/teste.ods' # arquivo de entrada (excel)
     pdf_directory = '.' 
     
     today = datetime.now()
@@ -303,7 +303,7 @@ if __name__ == '__main__':
 
     df = pd.read_excel(ods_path, engine='odf')
 
-    pdf_files = [f for f in os.listdir(pdf_directory) if f.endswith('email.pdf')]
+    pdf_files = [f for f in os.listdir(pdf_directory) if f.endswith('template/email.pdf')]
     
     pdf_map = {}
     for index, row in df.iterrows():
