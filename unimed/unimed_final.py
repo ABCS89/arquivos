@@ -205,15 +205,15 @@ def generate_document(data_row, email_date_info, current_date_info, due_date_inf
     funcionario_uppercase = funcionario_raw.upper()
     total = data_row['Total']
     
-    endereco_rua = data_row['Endereço'] if 'Endereço' in data_row and pd.notna(data_row['Endereço']) else ''
-    bairro = data_row['Bairro'] if 'Bairro' in data_row and pd.notna(data_row['Bairro']) else ''
-    complemento = data_row['Complemento'] if 'Complemento' in data_row and pd.notna(data_row['Complemento']) else ''
+    endereco_rua = data_row['endereço'] if 'endereço' in data_row and pd.notna(data_row['endereço']) else ''
+    bairro = data_row['bairro'] if 'bairro' in data_row and pd.notna(data_row['bairro']) else ''
+    complemento = data_row['complemento'] if 'complemento' in data_row and pd.notna(data_row['complemento']) else ''
     cidade = data_row['cidade'] if 'cidade' in data_row and pd.notna(data_row['cidade']) else ''
     cep = data_row['CEP'] if 'CEP' in data_row and pd.notna(data_row['CEP']) else ''
 
     endereco_completo = endereco_rua
     if complemento: 
-        endereco_completo += f', – {complemento}'
+        endereco_completo += f' – {complemento}'
     if bairro:
         endereco_completo += f' – {bairro}'
         # endereco_completo += f' - CEP: {cep}'
