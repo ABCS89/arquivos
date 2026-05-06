@@ -1,11 +1,16 @@
 # CLT
 ## Exoneração - Rescisão a pedido do empregado.
-## Aposentadoria - 
+## Aposentadoria - Rescisão a pedido do empregado
 
 -----------
 # Estatutário
 ## Exoneração - Exoneração a pedido do empregado.
-## Aposentadoria - Aposentadoria por tempo de contribuição
+## Aposentadoria - Aposentadoria por tempo de contribuição / invalidez
+
+-----------
+# Temporário
+## Exoneração - Rescisão a pedido do empregado temporário
+## termino de contrato - por lote normalmente
 
 
 H:\RH-Termo-Rescisao\2025
