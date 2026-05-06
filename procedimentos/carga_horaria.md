@@ -27,3 +27,5 @@
 
 
 > # Fazer sempre no primeiro dia do mês
+
+## Redução de carga horária de 40 para 30 horas semanais - Prot 
