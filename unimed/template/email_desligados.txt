@@ -1,7 +1,7 @@
 Boleto do Plano de Saúde Unimed – Referente a fevereiro/2026
 
 Segue, em anexo, o boleto referente ao plano de saúde Unimed, referente ao mês de fevereiro/2026.
-O valor total é de R$ [valor total] e vencimento do boleto é em 31/03/2026.
+O valor total é de R$ {valor_total} e vencimento do boleto é em {data_final_mes}.
 
 Em caso de atraso, poderão ser cobrados juros, multa e demais encargos financeiros cabíveis.
 
