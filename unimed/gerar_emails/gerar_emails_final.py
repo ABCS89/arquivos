@@ -36,7 +36,7 @@ def mes_referencia():
 # CAMINHOS
 # -------------------------
 
-pasta = "template"
+pasta = "../template"
 arquivo_ods = os.path.join(pasta, "teste.ods")
 
 # Templates

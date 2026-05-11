@@ -1,8 +1,8 @@
 import pandas as pd
 from docxtpl import DocxTemplate
 
-arquivo_excel = "teste.ods"
-template_word = "template_memorando.docx"
+arquivo_excel = "../template/teste.ods"
+template_word = "../template/template_memorando.docx"
 
 df = pd.read_excel(arquivo_excel, engine="odf")
 
