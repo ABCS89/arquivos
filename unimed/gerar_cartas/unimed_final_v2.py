@@ -8,6 +8,7 @@ import PyPDF2
 from num2words import num2words
 from datetime import datetime
 import calendar
+from datetime import datetime, timedelta
 
 # Mapeamento de meses para português
 meses_portugues = {
@@ -304,10 +305,19 @@ if __name__ == '__main__':
     current_date_formatted = f'{today.day} de {current_month_portugues} de {today.year}'
     current_date_info = (today.day, current_month_portugues, today.year, current_date_formatted)
 
-    last_day_of_month = calendar.monthrange(today.year, today.month)[1]
-    due_date_formatted = f'{last_day_of_month} de {current_month_portugues} de {today.year}'
-    due_date_info = (last_day_of_month, current_month_portugues, today.year, due_date_formatted)
-
+    last_day = calendar.monthrange(today.year, today.month)[1]
+    due_date = datetime(today.year, today.month, last_day)
+    
+    # Se cair sábado (5) ou domingo (6), volta até sexta
+    while due_date.weekday() >= 5:
+        due_date -= timedelta(days=1)
+    
+    due_day = due_date.day
+    due_month_portugues = meses_portugues[due_date.month]
+    due_year = due_date.year
+    
+    due_date_formatted = f'{due_day} de {due_month_portugues} de {due_year}'
+    due_date_info = (due_day, due_month_portugues, due_year, due_date_formatted)
 
     df = pd.read_excel(ods_path, engine='odf')
 

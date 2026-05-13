@@ -1,0 +1,27 @@
+Scrip aviso de cancelamento
+
+preciso de um script python para o seguinte:
+
+vou usar o seguinte arquivo "teste.ods" e "tabela dinamica (devedores).xlsx" para gerar um arquivo "nome do funcionario - aviso de cancelamento.docx", que será baseado num arquivo "template_aviso_cancelamento.docx" para gerar os avisos de cancelamento, onde será utilizada a "teste.ods" para ler o que será gerado, onde na coluna "condição" de "teste.ods" será utilizado a condição "não enviar" para gerar o arquivo "nome do funcionario - aviso de cancelamento.docx" e os dados virão da "tabela dinamica (devedores).xlsx" onde será utilizada planilha "Inadimplentes" para inserir no arquivo "nome do funcionario - aviso de cancelamento.docx", que será preenchido os seguintes valores no "nome do funcionario - aviso de cancelamento.docx":
+
+Piracicaba, [dia atual] de [mês atual] de [ano atual].
+
+[nome do servidor cap]
+
+[ultimo dia do mês atual] de [mês atual] de [ano atual] - onde dia do mês será o ultimo dia útil do mês, não podendo ser final de semana.
+
+e a tabela que será feita é:
+
+Competência | Vencimento | Principal | Encargos | Total
+
+onde os valores dessa tabela seão os correspondentes na "tabela dinamica (devedores).xlsx" planilha "Inadimplentes"
+
+
+tabela dinamica (devedores).docx    | tabela dinâmica (devedores).xlsx
+Competência                         | Mês/Ano
+Vencimento                          | Data de Vencimento
+Principal                           | Principal (Saldo)
+Encargos                            | Saldo (Atualizado) - Principal (Saldo)
+Total                               | Saldo (Atualizado)
+
+me fale também como devo foramatar a tabela dentro do arquivo "nome do funcionario - aviso de cancelamento.docx" e também o que devo colocar para inserir os valores corretamente.

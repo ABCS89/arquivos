@@ -25,29 +25,6 @@ Por favor, confirmar o recebimento deste e-mail.
 
 ---
 
-## 👤 Albertina Aparecida De Souza Carneiro
-
-> albertinatancredo@gmail.com  
-> Boleto do Plano de Saúde Unimed – Referente a abril/2026  
-### ✉️ Mensagem:
-
-Boleto do Plano de Saúde Unimed – Referente a abril/2026
-
-Segue, em anexo, o boleto referente ao plano de saúde Unimed, referente ao mês de abril/2026.
-O valor total é de R$ 333.49 e vencimento do boleto é em 29/05/2026.
-
-Em caso de atraso, poderão ser cobrados juros, multa e demais encargos financeiros cabíveis.
-
-Ressaltamos que a inadimplência por período superior a sessenta dias, consecutivos ou não, poderá resultar na rescisão unilateral do plano e/ou na inscrição do débito em dívida ativa, conforme previsto no § 4º do art. 2º e no art. 5º da Lei nº 9.988, de 14 de novembro de 2023.
-
-
-Em caso de dúvidas, entre em contato com o RH da Prefeitura de Piracicaba pelo telefone 3403-1007 e fale com Rafael.
-A mesma cobrança foi enviada pelos correios ao endereço cadastrado no sistema. Caso já tenha feito o pagamento, desconsidere este e-mail.
-
-Por favor, confirmar o recebimento deste e-mail.
-
----
-
 ## 👤 Aurea Oscarlina Chissini Sarto
 
 > carol_ita_03@hotmail.com  
@@ -94,52 +71,6 @@ Por favor, confirmar o recebimento deste e-mail.
 
 ---
 
-## 👤 Claudia Das Gracas Assine Silva
-
-> clauassine@gmail.com  
-> Boleto do Plano de Saúde Unimed – Referente a abril/2026  
-### ✉️ Mensagem:
-
-Boleto do Plano de Saúde Unimed – Referente a abril/2026
-
-Segue, em anexo, o boleto referente ao plano de saúde Unimed, referente ao mês de abril/2026.
-O valor total é de R$ 1067.43 e vencimento do boleto é em 29/05/2026.
-
-Em caso de atraso, poderão ser cobrados juros, multa e demais encargos financeiros cabíveis.
-
-Ressaltamos que a inadimplência por período superior a sessenta dias, consecutivos ou não, poderá resultar na rescisão unilateral do plano e/ou na inscrição do débito em dívida ativa, conforme previsto no § 4º do art. 2º e no art. 5º da Lei nº 9.988, de 14 de novembro de 2023.
-
-
-Em caso de dúvidas, entre em contato com o RH da Prefeitura de Piracicaba pelo telefone 3403-1007 e fale com Rafael.
-A mesma cobrança foi enviada pelos correios ao endereço cadastrado no sistema. Caso já tenha feito o pagamento, desconsidere este e-mail.
-
-Por favor, confirmar o recebimento deste e-mail.
-
----
-
-## 👤 Cristina Dos Santos Silveira
-
-> cris-fernandes10@hotmail.com  
-> Boleto do Plano de Saúde Unimed – Referente a abril/2026  
-### ✉️ Mensagem:
-
-Boleto do Plano de Saúde Unimed – Referente a abril/2026
-
-Segue, em anexo, o boleto referente ao plano de saúde Unimed, referente ao mês de abril/2026.
-O valor total é de R$ 366.97 e vencimento do boleto é em 29/05/2026.
-
-Em caso de atraso, poderão ser cobrados juros, multa e demais encargos financeiros cabíveis.
-
-Ressaltamos que a inadimplência por período superior a sessenta dias, consecutivos ou não, poderá resultar na rescisão unilateral do plano e/ou na inscrição do débito em dívida ativa, conforme previsto no § 4º do art. 2º e no art. 5º da Lei nº 9.988, de 14 de novembro de 2023.
-
-
-Em caso de dúvidas, entre em contato com o RH da Prefeitura de Piracicaba pelo telefone 3403-1007 e fale com Rafael.
-A mesma cobrança foi enviada pelos correios ao endereço cadastrado no sistema. Caso já tenha feito o pagamento, desconsidere este e-mail.
-
-Por favor, confirmar o recebimento deste e-mail.
-
----
-
 ## 👤 Daiane Bortolin De Souza
 
 > daianebf27@gmail.com  
@@ -150,29 +81,6 @@ Boleto do Plano de Saúde Unimed – Referente a abril/2026
 
 Segue, em anexo, o boleto referente ao plano de saúde Unimed, referente ao mês de abril/2026.
 O valor total é de R$ 1260.38 e vencimento do boleto é em 29/05/2026.
-
-Em caso de atraso, poderão ser cobrados juros, multa e demais encargos financeiros cabíveis.
-
-Ressaltamos que a inadimplência por período superior a sessenta dias, consecutivos ou não, poderá resultar na rescisão unilateral do plano e/ou na inscrição do débito em dívida ativa, conforme previsto no § 4º do art. 2º e no art. 5º da Lei nº 9.988, de 14 de novembro de 2023.
-
-
-Em caso de dúvidas, entre em contato com o RH da Prefeitura de Piracicaba pelo telefone 3403-1007 e fale com Rafael.
-A mesma cobrança foi enviada pelos correios ao endereço cadastrado no sistema. Caso já tenha feito o pagamento, desconsidere este e-mail.
-
-Por favor, confirmar o recebimento deste e-mail.
-
----
-
-## 👤 Daisy Aparecida Izidoro
-
-> daisyizidoro@hotmail.com  
-> Boleto do Plano de Saúde Unimed – Referente a abril/2026  
-### ✉️ Mensagem:
-
-Boleto do Plano de Saúde Unimed – Referente a abril/2026
-
-Segue, em anexo, o boleto referente ao plano de saúde Unimed, referente ao mês de abril/2026.
-O valor total é de R$ 477.59 e vencimento do boleto é em 29/05/2026.
 
 Em caso de atraso, poderão ser cobrados juros, multa e demais encargos financeiros cabíveis.
 
@@ -288,121 +196,6 @@ Boleto do Plano de Saúde Unimed – Referente a abril/2026
 
 Segue, em anexo, o boleto referente ao plano de saúde Unimed, referente ao mês de abril/2026.
 O valor total é de R$ 381.37 e vencimento do boleto é em 29/05/2026.
-
-Em caso de atraso, poderão ser cobrados juros, multa e demais encargos financeiros cabíveis.
-
-Ressaltamos que a inadimplência por período superior a sessenta dias, consecutivos ou não, poderá resultar na rescisão unilateral do plano e/ou na inscrição do débito em dívida ativa, conforme previsto no § 4º do art. 2º e no art. 5º da Lei nº 9.988, de 14 de novembro de 2023.
-
-
-Em caso de dúvidas, entre em contato com o RH da Prefeitura de Piracicaba pelo telefone 3403-1007 e fale com Rafael.
-A mesma cobrança foi enviada pelos correios ao endereço cadastrado no sistema. Caso já tenha feito o pagamento, desconsidere este e-mail.
-
-Por favor, confirmar o recebimento deste e-mail.
-
----
-
-## 👤 Jaqueline Souza Cerqueira De Lima
-
-> jaque190780@gmail.com  
-> Boleto do Plano de Saúde Unimed – Referente a abril/2026  
-### ✉️ Mensagem:
-
-Boleto do Plano de Saúde Unimed – Referente a abril/2026
-
-Segue, em anexo, o boleto referente ao plano de saúde Unimed, referente ao mês de abril/2026.
-O valor total é de R$ 333.49 e vencimento do boleto é em 29/05/2026.
-
-Em caso de atraso, poderão ser cobrados juros, multa e demais encargos financeiros cabíveis.
-
-Ressaltamos que a inadimplência por período superior a sessenta dias, consecutivos ou não, poderá resultar na rescisão unilateral do plano e/ou na inscrição do débito em dívida ativa, conforme previsto no § 4º do art. 2º e no art. 5º da Lei nº 9.988, de 14 de novembro de 2023.
-
-
-Em caso de dúvidas, entre em contato com o RH da Prefeitura de Piracicaba pelo telefone 3403-1007 e fale com Rafael.
-A mesma cobrança foi enviada pelos correios ao endereço cadastrado no sistema. Caso já tenha feito o pagamento, desconsidere este e-mail.
-
-Por favor, confirmar o recebimento deste e-mail.
-
----
-
-## 👤 Joao Carlos Fernandes Franco
-
-> joaocarlosfranco79@gmail.com  
-> Boleto do Plano de Saúde Unimed – Referente a abril/2026  
-### ✉️ Mensagem:
-
-Boleto do Plano de Saúde Unimed – Referente a abril/2026
-
-Segue, em anexo, o boleto referente ao plano de saúde Unimed, referente ao mês de abril/2026.
-O valor total é de R$ 333.49 e vencimento do boleto é em 29/05/2026.
-
-Em caso de atraso, poderão ser cobrados juros, multa e demais encargos financeiros cabíveis.
-
-Ressaltamos que a inadimplência por período superior a sessenta dias, consecutivos ou não, poderá resultar na rescisão unilateral do plano e/ou na inscrição do débito em dívida ativa, conforme previsto no § 4º do art. 2º e no art. 5º da Lei nº 9.988, de 14 de novembro de 2023.
-
-
-Em caso de dúvidas, entre em contato com o RH da Prefeitura de Piracicaba pelo telefone 3403-1007 e fale com Rafael.
-A mesma cobrança foi enviada pelos correios ao endereço cadastrado no sistema. Caso já tenha feito o pagamento, desconsidere este e-mail.
-
-Por favor, confirmar o recebimento deste e-mail.
-
----
-
-## 👤 Katia Karina Rosendo Tobaldini
-
-> kakirosendo@outlook.com  
-> Boleto do Plano de Saúde Unimed – Referente a abril/2026  
-### ✉️ Mensagem:
-
-Boleto do Plano de Saúde Unimed – Referente a abril/2026
-
-Segue, em anexo, o boleto referente ao plano de saúde Unimed, referente ao mês de abril/2026.
-O valor total é de R$ 700.46 e vencimento do boleto é em 29/05/2026.
-
-Em caso de atraso, poderão ser cobrados juros, multa e demais encargos financeiros cabíveis.
-
-Ressaltamos que a inadimplência por período superior a sessenta dias, consecutivos ou não, poderá resultar na rescisão unilateral do plano e/ou na inscrição do débito em dívida ativa, conforme previsto no § 4º do art. 2º e no art. 5º da Lei nº 9.988, de 14 de novembro de 2023.
-
-
-Em caso de dúvidas, entre em contato com o RH da Prefeitura de Piracicaba pelo telefone 3403-1007 e fale com Rafael.
-A mesma cobrança foi enviada pelos correios ao endereço cadastrado no sistema. Caso já tenha feito o pagamento, desconsidere este e-mail.
-
-Por favor, confirmar o recebimento deste e-mail.
-
----
-
-## 👤 Lana Renata Lopes Da Rocha
-
-> lrlrocha2023@gmail.com  
-> Boleto do Plano de Saúde Unimed – Referente a abril/2026  
-### ✉️ Mensagem:
-
-Boleto do Plano de Saúde Unimed – Referente a abril/2026
-
-Segue, em anexo, o boleto referente ao plano de saúde Unimed, referente ao mês de abril/2026.
-O valor total é de R$ 400.45 e vencimento do boleto é em 29/05/2026.
-
-Em caso de atraso, poderão ser cobrados juros, multa e demais encargos financeiros cabíveis.
-
-Ressaltamos que a inadimplência por período superior a sessenta dias, consecutivos ou não, poderá resultar na rescisão unilateral do plano e/ou na inscrição do débito em dívida ativa, conforme previsto no § 4º do art. 2º e no art. 5º da Lei nº 9.988, de 14 de novembro de 2023.
-
-
-Em caso de dúvidas, entre em contato com o RH da Prefeitura de Piracicaba pelo telefone 3403-1007 e fale com Rafael.
-A mesma cobrança foi enviada pelos correios ao endereço cadastrado no sistema. Caso já tenha feito o pagamento, desconsidere este e-mail.
-
-Por favor, confirmar o recebimento deste e-mail.
-
----
-
-## 👤 Lucelia Braga Matos
-
-> luceliabragalima@gmail.com  
-> Boleto do Plano de Saúde Unimed – Referente a abril/2026  
-### ✉️ Mensagem:
-
-Boleto do Plano de Saúde Unimed – Referente a abril/2026
-
-Segue, em anexo, o boleto referente ao plano de saúde Unimed, referente ao mês de abril/2026.
-O valor total é de R$ 333.49 e vencimento do boleto é em 29/05/2026.
 
 Em caso de atraso, poderão ser cobrados juros, multa e demais encargos financeiros cabíveis.
 
@@ -554,29 +347,6 @@ Por favor, confirmar o recebimento deste e-mail.
 
 ---
 
-## 👤 Oswaldo Belarmino Valadao Junior
-
-> juniorvaladao4@gmail.com  
-> Boleto do Plano de Saúde Unimed – Referente a abril/2026  
-### ✉️ Mensagem:
-
-Boleto do Plano de Saúde Unimed – Referente a abril/2026
-
-Segue, em anexo, o boleto referente ao plano de saúde Unimed, referente ao mês de abril/2026.
-O valor total é de R$ 666.98 e vencimento do boleto é em 29/05/2026.
-
-Em caso de atraso, poderão ser cobrados juros, multa e demais encargos financeiros cabíveis.
-
-Ressaltamos que a inadimplência por período superior a sessenta dias, consecutivos ou não, poderá resultar na rescisão unilateral do plano e/ou na inscrição do débito em dívida ativa, conforme previsto no § 4º do art. 2º e no art. 5º da Lei nº 9.988, de 14 de novembro de 2023.
-
-
-Em caso de dúvidas, entre em contato com o RH da Prefeitura de Piracicaba pelo telefone 3403-1007 e fale com Rafael.
-A mesma cobrança foi enviada pelos correios ao endereço cadastrado no sistema. Caso já tenha feito o pagamento, desconsidere este e-mail.
-
-Por favor, confirmar o recebimento deste e-mail.
-
----
-
 ## 👤 Pierre Kroll
 
 > pierre.kroll@hotmail.com  
@@ -633,29 +403,6 @@ Boleto do Plano de Saúde Unimed – Referente a abril/2026
 
 Segue, em anexo, o boleto referente ao plano de saúde Unimed, referente ao mês de abril/2026.
 O valor total é de R$ 666.98 e vencimento do boleto é em 29/05/2026.
-
-Em caso de atraso, poderão ser cobrados juros, multa e demais encargos financeiros cabíveis.
-
-Ressaltamos que a inadimplência por período superior a sessenta dias, consecutivos ou não, poderá resultar na rescisão unilateral do plano e/ou na inscrição do débito em dívida ativa, conforme previsto no § 4º do art. 2º e no art. 5º da Lei nº 9.988, de 14 de novembro de 2023.
-
-
-Em caso de dúvidas, entre em contato com o RH da Prefeitura de Piracicaba pelo telefone 3403-1007 e fale com Rafael.
-A mesma cobrança foi enviada pelos correios ao endereço cadastrado no sistema. Caso já tenha feito o pagamento, desconsidere este e-mail.
-
-Por favor, confirmar o recebimento deste e-mail.
-
----
-
-## 👤 Rosemeire Da Costa Dantas
-
-> rosedantas2018@hotmail  
-> Boleto do Plano de Saúde Unimed – Referente a abril/2026  
-### ✉️ Mensagem:
-
-Boleto do Plano de Saúde Unimed – Referente a abril/2026
-
-Segue, em anexo, o boleto referente ao plano de saúde Unimed, referente ao mês de abril/2026.
-O valor total é de R$ 404.88 e vencimento do boleto é em 29/05/2026.
 
 Em caso de atraso, poderão ser cobrados juros, multa e demais encargos financeiros cabíveis.
 

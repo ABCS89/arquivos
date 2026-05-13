@@ -27,4 +27,6 @@
 *.docx
 unimed/template/.~lock.template.docx\#
 *.env
-unimed/gerar_emails/emails_normais.md
+
+unimed/gerar_emails/*.md
+unimed\gerar_emails\*.md
