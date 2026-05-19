@@ -1,10 +1,22 @@
 import pdfplumber
 import pandas as pd
 import re
+import odf
 
 # =========================
 # PADRÕES
 # =========================
+
+OCORRENCIAS_VALIDAS = [
+    "ABONO",
+    "FÉRIAS REGULAMENTARES",
+    "DOAÇÃO DE SANGUE",
+    "TRATAMENTO DE SAÚDE",
+    "AUXÍLIO DOENÇA",
+    "LICENÇA MÉDICA",
+    "Aguardando perícia sempem",
+]
+
 PADRAO_FUNCIONAL = re.compile(r"\d{2}\.\d{3}-\d")
 PADRAO_DATA = re.compile(r"\d{2}/\d{2}/\d{4}")
 
@@ -22,17 +34,16 @@ IGNORAR_LINHAS = [
 def limpar_texto(txt):
     return " ".join(txt.split()) if txt else ""
 
+
 def linha_util(linha):
     if not linha:
         return False
     
     linha_upper = linha.upper()
     
-    # ignora lixo conhecido
     if any(x in linha_upper for x in IGNORAR_LINHAS):
         return False
     
-    # precisa ter funcional e data
     if not PADRAO_FUNCIONAL.search(linha):
         return False
     
@@ -40,6 +51,16 @@ def linha_util(linha):
         return False
     
     return True
+
+
+def extrair_ocorrencia(texto):
+    texto = texto.upper()
+
+    for ocorrencia in OCORRENCIAS_VALIDAS:
+        if ocorrencia in texto:
+            return ocorrencia
+
+    return "NÃO IDENTIFICADO"
 
 
 # =========================
@@ -51,7 +72,6 @@ def extrair_secretaria(pdf_path):
     with pdfplumber.open(pdf_path) as pdf:
         for pagina in pdf.pages:
             
-            # TENTA EXTRAIR COMO TABELA PRIMEIRO
             tabelas = pagina.extract_tables()
             
             if tabelas:
@@ -73,21 +93,16 @@ def extrair_secretaria(pdf_path):
                                 continue
                             
                             if not funcional:
-                                match = PADRAO_FUNCIONAL.search(item)
-                                if match:
-                                    funcional = match.group()
+                                m = PADRAO_FUNCIONAL.search(item)
+                                if m:
+                                    funcional = m.group()
                             
                             if not data:
-                                match = PADRAO_DATA.search(item)
-                                if match:
-                                    data = match.group()
+                                m = PADRAO_DATA.search(item)
+                                if m:
+                                    data = m.group()
                         
-                        ocorrencia = linha_txt
-                        if funcional:
-                            ocorrencia = ocorrencia.replace(funcional, "")
-                        if data:
-                            ocorrencia = ocorrencia.replace(data, "")
-                        ocorrencia = limpar_texto(ocorrencia)
+                        ocorrencia = extrair_ocorrencia(linha_txt)
                         
                         dados.append({
                             "funcional": funcional,
@@ -96,7 +111,6 @@ def extrair_secretaria(pdf_path):
                             "origem": "secretaria"
                         })
             
-            # FALLBACK → TEXTO
             else:
                 texto = pagina.extract_text()
                 if not texto:
@@ -107,19 +121,16 @@ def extrair_secretaria(pdf_path):
                     if not linha_util(linha):
                         continue
                     
-                    match_funcional = PADRAO_FUNCIONAL.search(linha)
-                    match_data = PADRAO_DATA.search(linha)
+                    m_func = PADRAO_FUNCIONAL.search(linha)
+                    m_data = PADRAO_DATA.search(linha)
 
-                    if not match_funcional or not match_data:
+                    if not m_func or not m_data:
                         continue
 
-                    funcional = match_funcional.group()
-                    data = match_data.group()
+                    funcional = m_func.group()
+                    data = m_data.group()
                     
-                    ocorrencia = linha
-                    ocorrencia = ocorrencia.replace(funcional, "")
-                    ocorrencia = ocorrencia.replace(data, "")
-                    ocorrencia = limpar_texto(ocorrencia)
+                    ocorrencia = extrair_ocorrencia(linha_txt)
                     
                     dados.append({
                         "funcional": funcional,
@@ -132,137 +143,128 @@ def extrair_secretaria(pdf_path):
 
 
 # =========================
-# EXTRAÇÃO - SISTEMA
+# EXTRAÇÃO - SISTEMA (ODS)
 # =========================
-def extrair_sistema(pdf_path):
-    dados = []
+def extrair_sistema_ods(arquivo_ods):
     
-    with pdfplumber.open(pdf_path) as pdf:
-        for pagina in pdf.pages:
-            texto = pagina.extract_text()
-            if not texto:
-                continue
-            
-            for linha in texto.split("\n"):
-                
-                if not linha_util(linha):
-                    continue
-                
-                match_funcional = PADRAO_FUNCIONAL.search(linha)
-                match_data = PADRAO_DATA.search(linha)
-
-                if not match_funcional or not match_data:
-                    continue
-
-                funcional = match_funcional.group()
-                data = match_data.group()
-                
-                ocorrencia = linha
-                ocorrencia = ocorrencia.replace(funcional, "")
-                ocorrencia = ocorrencia.replace(data, "")
-                ocorrencia = limpar_texto(ocorrencia)
-                
-                dados.append({
-                    "funcional": funcional,
-                    "data": data,
-                    "ocorrencia": ocorrencia,
-                    "origem": "sistema"
-                })
+    df = pd.read_excel(arquivo_ods, engine="odf")
     
-    return pd.DataFrame(dados)
+    df.columns = df.columns.str.upper().str.strip()
+    
+    df = df.rename(columns={
+        "FUNCIONÁRIO": "funcional",
+        "DATA INICIAL": "data",
+        "DESCRIÇÃO": "ocorrencia"
+    })
+    
+    df = df.dropna(subset=["funcional", "data"])
+    
+    df["funcional"] = df["funcional"].astype(str).str.strip()
+    
+    # 🔥 CORREÇÃO PRINCIPAL
+    df["data"] = pd.to_datetime(df["data"], errors="coerce").dt.strftime("%d/%m/%Y")
+    
+    df["ocorrencia"] = df["ocorrencia"].astype(str).str.strip()
+    
+    df["origem"] = "sistema"
 
+    print(df.columns)
+    
+    return df[["funcional", "data", "ocorrencia", "origem"]]
 
 # =========================
 # NORMALIZAÇÃO
 # =========================
 def normalizar(df):
-    # normaliza texto da ocorrência
+    
+    df["funcional"] = df["funcional"].astype(str).str.strip()
+    df["data"] = df["data"].astype(str).str.strip()
+    
+    # padroniza ocorrência
     df["ocorrencia"] = (
         df["ocorrencia"]
         .astype(str)
         .str.upper()
-        .str.replace(r"\s+", " ", regex=True)
         .str.strip()
     )
     
-    # cria chave única
-    df["chave"] = (
-        df["funcional"].astype(str).str.strip() + "_" +
-        df["data"].astype(str).str.strip() + "_" +
-        df["ocorrencia"]
-    )
+    # 🔥 chave de comparação
+    df["chave"] = df["funcional"] + "_" + df["data"]
     
-    # remove duplicados
-    df = df.drop_duplicates(subset=["chave"])
-    
+    print(df.columns)
+
     return df
 # =========================
 # COMPARAÇÃO
 # =========================
 def comparar(df_sec, df_sis):
     
-    sec_keys = set(df_sec["chave"])
-    sis_keys = set(df_sis["chave"])
-    
-    somente_sec = sec_keys - sis_keys
-    somente_sis = sis_keys - sec_keys
-    iguais = sec_keys & sis_keys
-    
-    df_sec["status"] = df_sec["chave"].apply(
-        lambda x: "OK" if x in iguais else "SÓ_SECRETARIA"
+    merge = pd.merge(
+        df_sec,
+        df_sis,
+        on="chave",
+        how="outer",
+        suffixes=("_sec", "_sis"),
+        indicator=True
     )
     
-    df_sis["status"] = df_sis["chave"].apply(
-        lambda x: "OK" if x in iguais else "SÓ_SISTEMA"
-    )
+    def classificar(row):
+        if row["_merge"] == "left_only":
+            return "SÓ_SECRETARIA"
+        elif row["_merge"] == "right_only":
+            return "SÓ_SISTEMA"
+        else:
+            if row["ocorrencia_sec"] != row["ocorrencia_sis"]:
+                return "DIVERGENCIA_OCORRENCIA"
+            return "OK"
     
-    return df_sec, df_sis
+    merge["status"] = merge.apply(classificar, axis=1)
+    
+    print(merge.columns)
 
+    return merge
 
 # =========================
 # EXECUÇÃO
 # =========================
 def main():
     arquivo_secretaria = "116 - secretaria.pdf"
-    arquivo_sistema = "116 - sistema.pdf"
+    arquivo_sistema = "116 - sistema.ods"
     
     print("Lendo secretaria...")
     df_sec = extrair_secretaria(arquivo_secretaria)
     
     print("Lendo sistema...")
-    df_sis = extrair_sistema(arquivo_sistema)
+    df_sis = extrair_sistema_ods(arquivo_sistema)
     
     print("Normalizando...")
     df_sec = normalizar(df_sec)
     df_sis = normalizar(df_sis)
     
     print("Comparando...")
-    df_sec, df_sis = comparar(df_sec, df_sis)
+    df_resultado = comparar(df_sec, df_sis)
     
-    # =========================
-    # CRIAR ABA DE DIVERGÊNCIAS
-    # =========================
+    df_divergencias = df_resultado[
+        df_resultado["status"] != "OK"
+    ].copy()
     
-    divergencias_sec = df_sec[df_sec["status"] == "SÓ_SECRETARIA"].copy()
-    divergencias_sis = df_sis[df_sis["status"] == "SÓ_SISTEMA"].copy()
     
-    divergencias_sec["tipo_erro"] = "FALTA NO SISTEMA"
-    divergencias_sis["tipo_erro"] = "FALTA NA SECRETARIA"
-    
-    df_divergencias = pd.concat([divergencias_sec, divergencias_sis])
-    
-    # organiza melhor
     df_divergencias = df_divergencias[[
-        "funcional", "data", "ocorrencia", "tipo_erro"
-    ]].sort_values(by=["funcional", "data", "tipo_erro"])
-    
+        "funcional_sec",
+        "data_sec",
+        "ocorrencia_sec",
+        "ocorrencia_sis",
+        "status"
+    ]].sort_values(by=["funcional_sec", "data_sec"])
+
     print("Salvando Excel...")
     with pd.ExcelWriter("resultado_comparacao.xlsx") as writer:
         df_sec.to_excel(writer, sheet_name="Secretaria", index=False)
         df_sis.to_excel(writer, sheet_name="Sistema", index=False)
         df_divergencias.to_excel(writer, sheet_name="DIVERGENCIAS", index=False)
     
-    print("✔ Finalizado com aba de divergências!")
+    print("✔ Finalizado!")
+
 
 if __name__ == "__main__":
     main()

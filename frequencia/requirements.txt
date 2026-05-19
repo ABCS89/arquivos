@@ -1,4 +1,4 @@
 pandas
 pdfplumber
 openpyxl
-unicodedata
+odfpy
