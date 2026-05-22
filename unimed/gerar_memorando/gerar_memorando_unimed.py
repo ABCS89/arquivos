@@ -1,4 +1,5 @@
 import pandas as pd
+import os
 from docxtpl import DocxTemplate
 
 arquivo_excel = "../template/teste.ods"
@@ -43,6 +44,9 @@ contexto = {
 
 doc.render(contexto)
 
-doc.save("memorando_final.docx")
+output_dir = "../output/memorando"
+os.makedirs(output_dir, exist_ok=True)
+
+doc.save("../output/memorando/memorando_final.docx")
 
 print("Memorando gerado com sucesso!")

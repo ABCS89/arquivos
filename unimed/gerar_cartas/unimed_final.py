@@ -8,6 +8,7 @@ import PyPDF2
 from num2words import num2words
 from datetime import datetime
 import calendar
+from datetime import datetime, timedelta
 
 # Mapeamento de meses para português
 meses_portugues = {
@@ -196,7 +197,7 @@ def replace_paragraph_text_preserve_style(paragraph, new_text):
 
 
 
-def generate_document(data_row, email_date_info, current_date_info, due_date_info, template_path='template.docx'):
+def generate_document(data_row, email_date_info, current_date_info, due_date_info, template_path='template_base.docx'):
     document = Document(template_path)
 
     nro_funcional = data_row['Nro Funcional']
@@ -286,56 +287,80 @@ def generate_document(data_row, email_date_info, current_date_info, due_date_inf
                 replace_text_in_paragraph(paragraph, key, value,)
 
         output_filename = f'{funcionario_raw}.docx'
-        output_path = os.path.join('output', output_filename)
+        output_path = os.path.join('../output/cartas', output_filename)
 
         document.save(output_path)
 
 if __name__ == '__main__':
-    output_directory = 'output'
+    output_directory = '../output/cartas'
 
     if not os.path.exists(output_directory):
         os.makedirs(output_directory)
 
     ods_path = '../template/teste.ods' # arquivo de entrada (excel)
-    pdf_directory = '../template' 
+    pdf_directory = '../pdfs' 
     
     today = datetime.now()
     current_month_portugues = meses_portugues[today.month]
     current_date_formatted = f'{today.day} de {current_month_portugues} de {today.year}'
     current_date_info = (today.day, current_month_portugues, today.year, current_date_formatted)
 
-    last_day_of_month = calendar.monthrange(today.year, today.month)[1]
-    due_date_formatted = f'{last_day_of_month} de {current_month_portugues} de {today.year}'
-    due_date_info = (last_day_of_month, current_month_portugues, today.year, due_date_formatted)
-
+    last_day = calendar.monthrange(today.year, today.month)[1]
+    due_date = datetime(today.year, today.month, last_day)
+    
+    # Se cair sábado (5) ou domingo (6), volta até sexta
+    while due_date.weekday() >= 5:
+        due_date -= timedelta(days=1)
+    
+    due_day = due_date.day
+    due_month_portugues = meses_portugues[due_date.month]
+    due_year = due_date.year
+    
+    due_date_formatted = f'{due_day} de {due_month_portugues} de {due_year}'
+    due_date_info = (due_day, due_month_portugues, due_year, due_date_formatted)
 
     df = pd.read_excel(ods_path, engine='odf')
 
     pdf_files = [f for f in os.listdir(pdf_directory) if f.endswith('.pdf')]
     
     pdf_map = {}
-    for index, row in df.iterrows():
-        nro_funcional = row['Nro Funcional']
-        email_address_from_excel = row['mail'] if 'mail' in row and pd.notna(row['mail']) else 'r-mail'
+    
+for index, row in df.iterrows():
 
-        # =========================
-        # NOVA REGRA DA CONDIÇÃO
-        # =========================
-        condicao = ''
-        if 'condição' in row and pd.notna(row['condição']):
-            condicao = str(row['condição']).strip().lower()
+    nro_funcional = row['Nro Funcional']
+    email_address_from_excel = row['mail'] if 'mail' in row and pd.notna(row['mail']) else 'r-mail'
 
-        if condicao == 'não enviar':
-            print(f"Pulando {row['Funcionário']} (condição: não enviar)")
-            continue
+    # CONDIÇÃO
+    condicao = ''
+    if 'condição' in row and pd.notna(row['condição']):
+        condicao = str(row['condição']).strip().lower()
 
-        elif condicao == 'desligado':
-            template_escolhido = '../template/template_desligado.docx'
-            print(f"{row['Funcionário']} → usando template DESLIGADO")
+    if condicao in {'aviso', 'cancelado'}:
+        print(f"Pulando {row['Funcionário']} (condição: {condicao})")
+        continue
 
-        else:
-            template_escolhido = '../template/template.docx'
-            print(f"{row['Funcionário']} → usando template PADRÃO")
+    elif condicao == 'desligado':
+        template_escolhido = '../template/template_desligado.docx'
+    else:
+        template_escolhido = '../template/template_base.docx'
+
+    # PDF
+    if nro_funcional in pdf_map:
+        current_pdf_path = os.path.join(pdf_directory, pdf_map[nro_funcional])
+        pdf_content = extract_text_from_pdf(current_pdf_path)
+        email_date_info = extract_info_from_pdf_content(pdf_content)
+    else:
+        print(f"Aviso: Nenhum PDF encontrado para {row['Funcionário']}")
+        email_date_info = ('dia de mês de ano', email_address_from_excel, 'mês', 'dia', 'ano', 'dia de mês de ano')
+
+    # GERAR
+    generate_document(
+        row,
+        email_date_info,
+        current_date_info,
+        due_date_info,
+        template_path=template_escolhido
+    )
 
     # =========================
     # RESTO DO PROCESSO
@@ -367,37 +392,6 @@ if __name__ == '__main__':
             template_path=template_escolhido
         )
 
-print(f"\n--- Iniciando geração de documentos ---")
-
-for index, row in df.iterrows():
-    nro_funcional = row['Nro Funcional']
-    email_address_from_excel = row['mail'] if 'mail' in row and pd.notna(row['mail']) else 'r-mail'
-
-    # REGRA DA CONDIÇÃO
-    condicao = ''
-    if 'condição' in row and pd.notna(row['condição']):
-        condicao = str(row['condição']).strip().lower()
-
-    if condicao == 'não enviar':
-        print(f"Pulando {row['Funcionário']} (condição: não enviar)")
-        continue
-
-    elif condicao == 'desligado':
-        template_escolhido = '../template/template_desligado.docx'
-        print(f"{row['Funcionário']} → usando template DESLIGADO")
-
-    else:
-        template_escolhido = '../template/template.docx'
-        print(f"{row['Funcionário']} → usando template PADRÃO")
-
-    # PROCESSAMENTO PDF
-    if nro_funcional in pdf_map:
-        current_pdf_path = os.path.join(pdf_directory, pdf_map[nro_funcional])
-        pdf_content = extract_text_from_pdf(current_pdf_path)
-        email_date_info = extract_info_from_pdf_content(pdf_content)
-    else:
-        print(f"Aviso: Nenhum PDF encontrado para {row['Funcionário']}")
-        email_date_info = ('dia de mês de ano', email_address_from_excel, 'mês', 'dia', 'ano', 'dia de mês de ano')
 
     # GERAR DOCUMENTO
     generate_document(

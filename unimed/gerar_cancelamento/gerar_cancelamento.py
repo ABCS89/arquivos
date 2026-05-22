@@ -8,6 +8,9 @@ import os
 # FUNÇÕES AUXILIARES
 # =========================
 
+output_dir = "../output/cancelados"
+os.makedirs(output_dir, exist_ok=True)
+
 def ultimo_dia_util_mes(ano, mes):
     ultimo_dia = calendar.monthrange(ano, mes)[1]
     data = datetime(ano, mes, ultimo_dia)
@@ -107,6 +110,7 @@ ano = hoje.year
 mes_extenso = mes_por_extenso(mes)
 dia_limite = dia_limite_pagamento(ano, mes)
 ultimo_dia_util = ultimo_dia_util_mes(ano, mes)
+ultimo_dia_do_mes = calendar.monthrange(ano, mes)[1]
 
 # =========================
 # TEMPLATES
@@ -188,6 +192,7 @@ for _, row in df_base.iterrows():
         "ano": ano,
         "dia_limite": dia_limite,
         "ultimo_dia_util": ultimo_dia_util,  # 🔥 ESSENCIAL
+        "ultimo_dia_do_mes": ultimo_dia_do_mes,  # 🔥 NOVO
         "nome_upper": nome.upper(),
         "nome_cap": str(nome).title(),
         "linha_endereco": linha_endereco,
@@ -199,6 +204,7 @@ for _, row in df_base.iterrows():
 
     doc = DocxTemplate(template_path)
     doc.render(contexto)
-    doc.save(nome_saida)
+    caminho_saida = os.path.join(output_dir, nome_saida)
+    doc.save(caminho_saida)
 
 print("\n✅ Arquivos gerados com sucesso!")
