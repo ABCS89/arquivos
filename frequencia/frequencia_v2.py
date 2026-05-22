@@ -2,20 +2,131 @@ import pdfplumber
 import pandas as pd
 import re
 import odf
+import unicodedata
+
+import unicodedata
+
+def linha_util_texto(linha_txt):
+    if not linha_txt:
+        return False
+    
+    linha_upper = linha_txt.upper()
+    
+    if any(x in linha_upper for x in IGNORAR_LINHAS):
+        return False
+    
+    if not PADRAO_DATA.search(linha_txt):
+        return False
+    
+    return True
+
+    
+def normalizar_texto(txt):
+    if not txt:
+        return ""
+    
+    txt = txt.upper()
+    
+    # remove acentos
+    txt = unicodedata.normalize('NFKD', txt)
+    txt = txt.encode('ASCII', 'ignore').decode('ASCII')
+    
+    # remove espaços duplicados
+    txt = " ".join(txt.split())
+    
+    return txt
 
 # =========================
 # PADRÕES
 # =========================
 
-OCORRENCIAS_VALIDAS = [
-    "ABONO",
-    "FÉRIAS REGULAMENTARES",
-    "DOAÇÃO DE SANGUE",
-    "TRATAMENTO DE SAÚDE",
-    "AUXÍLIO DOENÇA",
-    "LICENÇA MÉDICA",
-    "Aguardando perícia sempem",
-]
+MAPA_OCORRENCIAS = {
+    "ABONO": ["ABONO"],
+    
+    "FÉRIAS REGULAMENTARES": [
+        "FÉRIAS REGULAMENTARES",
+        "FERIAS REGULAMENTARES"
+    ],
+    
+    "DOAÇÃO DE SANGUE": [
+        "DOAÇÃO DE SANGUE",
+        "DOACAO DE SANGUE"
+    ],
+    
+    "TRATAMENTO DE SAÚDE": [
+        "TRATAMENTO DE SAÚDE",
+        "TRATAMENTO DE SAUDE",
+        "TRATAMENTO DE"
+    ],
+    
+    "AUXÍLIO DOENÇA": [
+        "AUXÍLIO DOENÇA",
+        "AUXILIO DOENCA"
+    ],
+    
+    "LICENÇA MÉDICA": [
+        "LICENÇA MÉDICA",
+        "LICENCA MEDICA"
+    ],
+    
+    "AFASTAMENTO SEM VENCIMENTOS": [
+        "AFASTAMENTO SEM VENCIMENTOS",
+        "AFASTAMENTO SEM VENCIMENTO",
+        "AFASTAMENTO S/VENCIMENTOS",
+        "AFASTAMENTO SEM VENC",
+        "SEM VENCIMENTOS"
+    ],
+
+    "FALTA": [
+        "FALTA",
+        "FALTAS EFETIVOS",
+        "FALT"
+    ],
+
+    "CEDIDO SEM ÔNUS PARA CEDENTE": [
+        "CEDIDO SEM ÔNUS PARA CEDENTE",
+        "CEDIDO SEM ÔNUS",
+        "CEDIDO"
+    ],
+
+    "AFASTAMENTO POR MANDADO JUDICIAL": [
+        "AFASTAMENTO POR MANDADO JUDICIAL",
+        "MANDADO JUDICIAL"
+    ],
+
+    "DOENÇA EM PESSOA DA FAMÍLIA": [
+        "DOENÇA EM PESSOA DA FAMÍLIA",
+        "DOENÇA EM PESSOA"
+    ],
+
+    "NOJO": [
+        "NOJO"
+    ],
+
+    "AGUARDANDO PERÍCIA SEMPEM": [
+        "AGUARDANDO PERÍCIA SEMPEM",
+        "AGUARDANDO PERÍCIA",
+        "PERICIA",
+        "PERÍCIA"
+    ],
+
+    "Férias prêmio": [
+        "Férias prêmio",
+        "PREMIO",
+        "PRÊMIO"
+    ],
+
+    "Licença maternidade prorrogação": [
+        "Licença maternidade prorrogação"
+    ],
+
+    "Licença maternidade": [
+        "Licença maternidade"
+    ]
+
+
+}
+
 
 PADRAO_FUNCIONAL = re.compile(r"\d{2}\.\d{3}-\d")
 PADRAO_DATA = re.compile(r"\d{2}/\d{2}/\d{4}")
@@ -54,15 +165,16 @@ def linha_util(linha):
 
 
 def extrair_ocorrencia(texto):
-    texto = texto.upper()
+    texto = normalizar_texto(texto)
 
-    for ocorrencia in OCORRENCIAS_VALIDAS:
-        if ocorrencia in texto:
-            return ocorrencia
+    for padrao, variacoes in MAPA_OCORRENCIAS.items():
+        for v in variacoes:
+            if normalizar_texto(v) in texto:
+                return padrao
 
     return "NÃO IDENTIFICADO"
 
-
+    
 # =========================
 # EXTRAÇÃO - SECRETARIA
 # =========================
@@ -76,69 +188,93 @@ def extrair_secretaria(pdf_path):
             
             if tabelas:
                 for tabela in tabelas:
+                    ultimo_funcional = None
+                    
                     for linha in tabela:
                         if not linha:
                             continue
-                        
+        
                         linha_txt = " ".join([str(x) for x in linha if x])
-                        
-                        if not linha_util(linha_txt):
+        
+                        if not linha_util_texto(linha_txt):
                             continue
-                        
+        
                         funcional = None
                         data = None
-                        
+        
                         for item in linha:
                             if not item:
                                 continue
-                            
-                            if not funcional:
-                                m = PADRAO_FUNCIONAL.search(item)
-                                if m:
-                                    funcional = m.group()
-                            
-                            if not data:
-                                m = PADRAO_DATA.search(item)
-                                if m:
-                                    data = m.group()
-                        
+        
+                            # 🔥 extrai funcional
+                            m_func = PADRAO_FUNCIONAL.search(item)
+                            if m_func:
+                                funcional = m_func.group()
+                                ultimo_funcional = funcional
+        
+                            # 🔥 extrai data
+                            m_data = PADRAO_DATA.search(item)
+                            if m_data:
+                                data = m_data.group()
+        
+                        # 🔥 fallback de funcional (linhas quebradas no PDF)
+                        if not funcional:
+                            funcional = ultimo_funcional
+        
+                        # 🔥 validação mínima
+                        if not funcional or not data:
+                            continue
+        
                         ocorrencia = extrair_ocorrencia(linha_txt)
-                        
+        
                         dados.append({
                             "funcional": funcional,
                             "data": data,
                             "ocorrencia": ocorrencia,
                             "origem": "secretaria"
                         })
-            
+
+
             else:
                 texto = pagina.extract_text()
                 if not texto:
                     continue
-                
+
+
                 for linha in texto.split("\n"):
-                    
-                    if not linha_util(linha):
+                
+                    if not linha:
                         continue
-                    
+
+                    linha_upper = linha.upper()
+
+                    if any(x in linha_upper for x in IGNORAR_LINHAS):
+                        continue
+
                     m_func = PADRAO_FUNCIONAL.search(linha)
                     m_data = PADRAO_DATA.search(linha)
 
-                    if not m_func or not m_data:
+                    if m_func:
+                        ultimo_funcional = m_func.group()
+
+                    if not m_data:
                         continue
 
-                    funcional = m_func.group()
+                    if not ultimo_funcional:
+                        continue
+
+                    funcional = ultimo_funcional
                     data = m_data.group()
-                    
-                    ocorrencia = extrair_ocorrencia(linha_txt)
-                    
+                    ocorrencia = extrair_ocorrencia(linha)
+
                     dados.append({
                         "funcional": funcional,
                         "data": data,
                         "ocorrencia": ocorrencia,
                         "origem": "secretaria"
                     })
-    
+                            
+                                
     return pd.DataFrame(dados)
 
 
