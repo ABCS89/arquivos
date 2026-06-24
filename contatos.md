@@ -56,7 +56,12 @@
     > - Keissy - 1223 - acessor secretária
     > - Laura - 1267
 
-> ## 15-  SEMUTRI Transportes Internos
+> ## -  SEGTRANS Transportes Internos
+> - Flavio  - 1131
+
+> ## - Transportes Internos
+> - NAA - 
+> - 3417-3800 
 
 > ## 16- RITA 1043
 
@@ -76,6 +81,9 @@
 
 > ## 20- SEMDETUR
   >      3403-1160
+
+> ## Gabinete do Prefeito
+ > - Bruno - 1071
 
 
 > ## CI
