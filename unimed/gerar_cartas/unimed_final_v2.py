@@ -302,97 +302,76 @@ def generate_document(data_row, email_date_info, current_date_info, due_date_inf
         document.save(output_path)
 
 
-    if __name__ == '__main__':
-        output_directory = '../output/cartas'
-    
-        if not os.path.exists(output_directory):
-            os.makedirs(output_directory)
-    
-        ods_path = '../template/teste.ods' # arquivo de entrada (excel)
-        pdf_directory = '../pdfs/' 
-        
-        today = datetime.now()
-        current_month_portugues = meses_portugues[today.month]
-        current_date_formatted = f'{today.day} de {current_month_portugues} de {today.year}'
-        current_date_info = (today.day, current_month_portugues, today.year, current_date_formatted)
-    
-        last_day = calendar.monthrange(today.year, today.month)[1]
-        due_date = datetime(today.year, today.month, last_day)
-        
-        # Se cair sábado (5) ou domingo (6), volta até sexta
-        while due_date.weekday() >= 5:
-            due_date -= timedelta(days=1)
-        
-        due_day = due_date.day
-        due_month_portugues = meses_portugues[due_date.month]
-        due_year = due_date.year
-        
-        due_date_formatted = f'{due_day} de {due_month_portugues} de {due_year}'
-        due_date_info = (due_day, due_month_portugues, due_year, due_date_formatted)
-    
-        df = pd.read_excel(ods_path, engine='odf')
-    
-        pdf_files = [f for f in os.listdir(pdf_directory) if f.endswith('.pdf')]
-        
-        pdf_map = {}
-    
-        print("\n🔍 MAPEANDO PDFs...\n")
-    
-        for pdf in pdf_files:
-            nome_pdf_normalizado = extrair_nome_pdf(pdf)
-    
-            print(f"\nPDF: {pdf}")
-            print(f"Nome tratado: {nome_pdf_normalizado}")
-    
-            for _, row in df.iterrows():
-                nome_planilha = normalize_name_for_comparison(row['Funcionário'])
-                nro_funcional = row['Nro Funcional']
-    
-                if nome_planilha in nome_pdf_normalizado or nome_pdf_normalizado in nome_planilha:
-                    print(f"✅ MATCH: {row['Funcionário']}")
-                    pdf_map[nro_funcional] = pdf
-    
-        print("\n📊 MAPEAMENTO FINAL:")
-        for k, v in pdf_map.items():
-            print(f"{k} -> {v}")    
+if __name__ == '__main__':
+    output_directory = '../output/cartas'
 
+    if not os.path.exists(output_directory):
+        os.makedirs(output_directory)
 
-for index, row in df.iterrows():
+    ods_path = '../template/teste.ods'
+    pdf_directory = '../pdfs/' 
 
-    nro_funcional = row['Nro Funcional']
-    email_address_from_excel = row['mail'] if 'mail' in row and pd.notna(row['mail']) else 'r-mail'
+    today = datetime.now()
+    current_month_portugues = meses_portugues[today.month]
+    current_date_formatted = f'{today.day} de {current_month_portugues} de {today.year}'
+    current_date_info = (today.day, current_month_portugues, today.year, current_date_formatted)
 
-    # CONDIÇÃO
-    condicao = ''
-    if 'condição' in row and pd.notna(row['condição']):
-        condicao = str(row['condição']).strip().lower()
+    last_day = calendar.monthrange(today.year, today.month)[1]
+    due_date = datetime(today.year, today.month, last_day)
 
-    if condicao in {'aviso', 'cancelado'}:
-        print(f"Pulando {row['Funcionário']} (condição: {condicao})")
-        continue
+    while due_date.weekday() >= 5:
+        due_date -= timedelta(days=1)
 
-    elif condicao == 'desligado':
-        template_escolhido = '../template/template_desligado.docx'
-    else:
-        template_escolhido = '../template/template_base.docx'
+    due_day = due_date.day
+    due_month_portugues = meses_portugues[due_date.month]
+    due_year = due_date.year
 
-    # PDF
-    if nro_funcional in pdf_map:
-        current_pdf_path = os.path.join(pdf_directory, pdf_map[nro_funcional])
-        pdf_content = extract_text_from_pdf(current_pdf_path)
-        email_date_info = extract_info_from_pdf_content(pdf_content)
+    due_date_formatted = f'{due_day} de {due_month_portugues} de {due_year}'
+    due_date_info = (due_day, due_month_portugues, due_year, due_date_formatted)
 
-        print(f"✔ PDF encontrado para {row['Funcionário']}")
-    else:
-        print(f"❌ Nenhum PDF encontrado para {row['Funcionário']}")
-        email_date_info = ('dia de mês de ano', email_address_from_excel, 'mês', 'dia', 'ano', 'dia de mês de ano')
+    df = pd.read_excel(ods_path, engine='odf')
 
-    # GERAR DOCUMENTO (UMA VEZ SÓ)
-    generate_document(
-        row,
-        email_date_info,
-        current_date_info,
-        due_date_info,
-        template_path=template_escolhido
-    )
+    pdf_files = [f for f in os.listdir(pdf_directory) if f.endswith('.pdf')]
 
+    pdf_map = {}
+
+    for pdf in pdf_files:
+        nome_pdf_normalizado = extrair_nome_pdf(pdf)
+
+        for _, row in df.iterrows():
+            nome_planilha = normalize_name_for_comparison(row['Funcionário'])
+            nro_funcional = row['Nro Funcional']
+
+            if nome_planilha in nome_pdf_normalizado or nome_pdf_normalizado in nome_planilha:
+                pdf_map[nro_funcional] = pdf
+
+    # 🔥 AGORA SIM: loop dentro do escopo correto
+    for index, row in df.iterrows():
+        nro_funcional = row['Nro Funcional']
+
+        condicao = ''
+        if 'condição' in row and pd.notna(row['condição']):
+            condicao = str(row['condição']).strip().lower()
+
+        if condicao in {'aviso', 'cancelado'}:
+            continue
+
+        elif condicao == 'desligado':
+            template_escolhido = '../template/template_desligado.docx'
+        else:
+            template_escolhido = '../template/template_base.docx'
+
+        if nro_funcional in pdf_map:
+            current_pdf_path = os.path.join(pdf_directory, pdf_map[nro_funcional])
+            pdf_content = extract_text_from_pdf(current_pdf_path)
+            email_date_info = extract_info_from_pdf_content(pdf_content)
+        else:
+            email_date_info = ('dia de mês de ano', '', 'mês', 'dia', 'ano', 'dia de mês de ano')
+
+        generate_document(
+            row,
+            email_date_info,
+            current_date_info,
+            due_date_info,
+            template_path=template_escolhido
+        )
