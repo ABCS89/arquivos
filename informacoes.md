@@ -5,6 +5,11 @@ Em atenção ao seu pedido, segue em anexo a discriminação da coparticipação
 
 Caso tenha qualquer dúvida ou necessite de mais informações, por favor, entre em contato.
 
+
+> # emails cesta básica mensal
+ > Lista Cesta Básica junho
+    > Envio em anexo a lista dos beneficiados com cesta básica referente ao mês de junho.
+
 > # Inicio de Atividades Comissionados
 > - Se errado
 > - * Favor preencher local de trabalho conforme novo organograma.
