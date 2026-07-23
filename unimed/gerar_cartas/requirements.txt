@@ -1,5 +1,0 @@
-pandas
-python-docx
-odfpy
-PyPDF2
-num2words

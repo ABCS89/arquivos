@@ -1,0 +1,10 @@
+# Sistema de cartas/memorandos/notificações - Plano de Saúde
+# Instalar com: pip install -r requirements.txt (dentro do venv ativado)
+
+pandas>=2.2
+docxtpl>=0.16
+python-docx>=1.1
+PyPDF2>=3.0
+num2words>=0.5
+odfpy>=1.4        # necessário para ler .ods (engine="odf") - teste.ods
+openpyxl>=3.1     # necessário para ler .xlsx - devedores.xlsx

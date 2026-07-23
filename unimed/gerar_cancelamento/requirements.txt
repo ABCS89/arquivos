@@ -1,5 +1,0 @@
-pandas
-odfpy
-openpyxl
-docxtpl
-python-dateutil
