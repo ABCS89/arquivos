@@ -18,3 +18,4 @@
  > - CLT  -  Rescisão a pedido do empregado
  > - Temporário  -  Rescisão a pedido do empregado temporário
 
+# 

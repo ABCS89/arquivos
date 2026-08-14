@@ -6,8 +6,7 @@ Entro em contato para avisar que aposentados com Plano de Saúde podem migrar pa
 
 Atendemos das 8h às 16h, no 7º andar do Centro Cívico, falar com os servidores da folha de pagamento.
 
-
-
+----------------1
 
 
 Bom dia,
@@ -25,3 +24,13 @@ André Bueno
 
 Folha de Pagamento – DRH
 Prefeitura de Piracicaba
+
+--------------
+
+Bom dia,
+
+Sou da equipe da Folha de Pagamento do DRH da Prefeitura de Piracicaba.
+
+Precisamos realizar um pagamento complementar em sua conta. No sistema, porém, consta uma conta cadastrada para portabilidade, e esse tipo de conta não permite que efetuemos o pagamento complementar.
+
+Para que o pagamento seja realizado, é necessário informar uma conta corrente ou conta poupança vinculada ao seu CPF, de qualquer banco no qual você possua conta.
