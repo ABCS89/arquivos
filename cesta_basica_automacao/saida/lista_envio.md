@@ -56,7 +56,7 @@
 - Arquivo: Cesta Basica - 119 - 08-2026.xlsx
 
 ## Secretaria 124
-- E-mail: recarvalho@piracicaba.sp.gov.br
+- E-mail: recarvalho@piracicaba.sp.gov.br, rccosta@piracicaba.sp.gov.br
 - Funcionários: 7
 - Arquivo: Cesta Basica - 124 - 08-2026.xlsx
 
