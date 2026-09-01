@@ -8,7 +8,7 @@
 ## Secretaria 104
 - E-mail: vlavandosque@piracicaba
 - Funcionários: 0
-- Arquivo: Cesta Basica - 104 - 08-2026.xlsx
+- Arquivo: (nenhum arquivo gerado - sem funcionário este mês)
 
 ## Secretaria 106
 - E-mail: Milene – mvidal@piracicaba.sp.gov.br

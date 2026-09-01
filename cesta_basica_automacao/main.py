@@ -61,8 +61,10 @@ def main():
     print(f"   Arquivo consolidado salvo em: {caminho_cesta_atualizada}")
 
     print("\n5) Gerando um arquivo separado por secretaria...")
-    arquivos_gerados = exportacao.exportar_arquivos_por_secretaria(caminho_cesta_atualizada, competencia)
+    arquivos_gerados = exportacao.exportar_arquivos_por_secretaria(caminho_cesta_atualizada, competencia, grupos)
     print(f"   {len(arquivos_gerados)} arquivos gerados em: {config.SAIDA_SECRETARIAS_DIR}")
+    if abas_sem_funcionarios:
+        print(f"   (as abas {abas_sem_funcionarios} não geraram arquivo, por estarem vazias este mês)")
 
     print("\n6) Gerando lista de envio (lista_envio.md)...")
     wb_leitura = openpyxl.load_workbook(caminho_cesta_atualizada)

@@ -65,11 +65,13 @@ def preencher_abas_secretarias(wb, grupos: dict):
     return abas_sem_funcionarios
 
 
-def exportar_arquivos_por_secretaria(caminho_cesta_atualizada: Path, competencia: str):
+def exportar_arquivos_por_secretaria(caminho_cesta_atualizada: Path, competencia: str, grupos: dict):
     """
     A partir do cesta_basica.xlsx já atualizado, gera um arquivo .xlsx separado
-    para cada secretaria — cada um contendo só a aba daquela secretaria,
-    pronto para anexar no e-mail.
+    para cada secretaria que tiver pelo menos um funcionário — cada um contendo
+    só a aba daquela secretaria, pronto para anexar no e-mail.
+
+    Secretarias sem nenhum funcionário neste mês são puladas (não geram arquivo).
     """
     config.SAIDA_SECRETARIAS_DIR.mkdir(parents=True, exist_ok=True)
     competencia_arquivo = competencia.replace("/", "-")
@@ -80,6 +82,9 @@ def exportar_arquivos_por_secretaria(caminho_cesta_atualizada: Path, competencia
 
     arquivos_gerados = {}
     for nome_aba in abas_secretarias:
+        if not grupos.get(nome_aba):
+            continue  # sem funcionário este mês -> não gera arquivo
+
         caminho_temp = config.SAIDA_SECRETARIAS_DIR / f"_tmp_{nome_aba}.xlsx"
         shutil.copy(caminho_cesta_atualizada, caminho_temp)
 
@@ -110,7 +115,12 @@ def gerar_lista_envio(wb, grupos: dict, arquivos_gerados: dict, competencia: str
         email = ws.cell(row=config.LINHA_EMAIL, column=1).value or "(sem e-mail cadastrado)"
         qtd_funcionarios = len(grupos.get(nome_aba, []))
         arquivo = arquivos_gerados.get(nome_aba)
-        nome_arquivo = arquivo.name if arquivo else "-"
+        if arquivo:
+            nome_arquivo = arquivo.name
+        elif qtd_funcionarios == 0:
+            nome_arquivo = "(nenhum arquivo gerado - sem funcionário este mês)"
+        else:
+            nome_arquivo = "-"
 
         linhas.append(f"## Secretaria {nome_aba}")
         linhas.append(f"- E-mail: {email}")
