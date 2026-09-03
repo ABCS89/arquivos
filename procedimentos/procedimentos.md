@@ -1,17 +1,3 @@
-# agente comunitario de saude
-  - passar para Lucy.
-
-[
-# formatacao planilha excel
-   - formatar a forma para impressao
-    - formatar:
-      - estilos de pagina:
-          rodapé = tirar ativacao de rodape
-          cabecalho = tirar ativacaao de cabecalho
-          pagina:
-          - orientacao = paisagem
-
-[
 # Sistema de Desligamento
   Cadastro:
   - cadastro pessoal

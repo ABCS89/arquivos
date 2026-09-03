@@ -21,3 +21,13 @@ H:\RH-Termo-Rescisao\2025
 ficar com 1 via de cada assinada
 
 entregar as outras vias com assinatura do chefe de setor.
+
+
+
+
+# Compulsória 75 anos
+
+Segue carta de solicitação de demissão compulsória de 
+
+Desligamento Compulsório - 75 anos - 
+
