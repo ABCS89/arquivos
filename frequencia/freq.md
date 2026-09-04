@@ -1,1 +1,0 @@
-vamos lá, tenho 2 arquivos, o "116 - secretaria" em que está a frequencia mensal gerada pela secretaria, e o "116 - sistema", onde está a frequencia mensal que o sistema gera, e preciso fazer mensalmente a conferencia entre o que está em sistema e o registro que veio da secretaria e apontar as diferenças. como voce pode fazer isso onde isso possa acontacer ?

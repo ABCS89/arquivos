@@ -1,4 +1,2 @@
-pandas
 pdfplumber
 openpyxl
-odfpy
