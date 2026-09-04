@@ -2,7 +2,8 @@
 
 Confere, mês a mês, o relatório de frequência gerado pela **secretaria**
 ("Frequência dos Funcionários") contra o relatório gerado pelo **sistema**
-("Relatório Ocorrência Geral"), e aponta as diferenças em um Excel.
+("Relatório Ocorrência Geral"), e gera uma lista pronta de retificações:
+"nesta data, o tipo lançado deveria ser outro".
 
 ## Estrutura
 
@@ -13,12 +14,14 @@ conferencia-frequencia/
     secretaria/AAAA-MM.pdf  # PDF que a secretaria manda
     sistema/AAAA-MM.pdf     # PDF que o sistema gera
   output/
-    conferencia_AAAA-MM.xlsx
+    conferencia_AAAA-MM.xlsx      # aba "Retificações" + aba "Resumo"
+    retificacoes_AAAA-MM.md       # só se houver retificação
+    retificacoes_AAAA-MM.txt      # idem, texto puro
   src/
     extract_secretaria.py   # lê o PDF de texto corrido da secretaria
     extract_sistema.py      # lê o PDF em tabela do sistema
-    compare.py               # agrega por (matrícula, tipo de ocorrência) e compara
-    main.py                  # roda tudo e gera o Excel
+    compare.py               # compara dia a dia dentro do mês de referência
+    main.py                  # roda tudo e gera Excel + md + txt
   requirements.txt
 ```
 
@@ -39,58 +42,62 @@ conferencia-frequencia/
    ```
 
 3. Confira a saída em `output/`:
-   - `conferencia_AAAA-MM.xlsx` — sempre gerado, aba **Divergências** (colorida)
-     + aba **Resumo**.
-   - `divergencias_AAAA-MM.md` — **só é gerado se houver divergência**. Serve
-     pra colar num e-mail, chamado, ou revisão rápida sem precisar abrir Excel.
+   - `conferencia_AAAA-MM.xlsx` — sempre gerado, aba **Retificações**
+     (colorida) + aba **Resumo**.
+   - `retificacoes_AAAA-MM.md` e `.txt` — **só gerados se houver
+     retificação**, já no formato:
+     ```
+     10.688-3 - GILDEMAR PEREIRA DE SOUZA - 27/04/2026 - 1 dia - Aguardando perícia sempem --> Tratamento De Saúde
+     ```
+     prontos pra colar num e-mail/chamado sem precisar reformatar nada.
 
 (Se preferir, dá pra criar um `.bat`/alias/atalho chamando esses dois
 comandos, ou eu adapto para vasculhar `input/` inteiro e gerar todos os
 meses pendentes de uma vez — é só pedir.)
 
-## O que o script faz
+## Como a comparação funciona (dia a dia)
 
-- **Extrai** os registros dos dois PDFs (matrícula, nome, tipo de
-  ocorrência, datas, quantidade de dias).
-- **Ignora** "Frequência normal" (não é uma ocorrência, é a ausência de
-  qualquer evento no mês — só aparece no relatório da secretaria).
-- **Recorta ao mês de referência**: para os registros do sistema, que trazem
-  data inicial e final, só entra na soma a quantidade de dias que cai
-  *dentro* do mês (ex.: um período de 16/03 a 14/04 conta só os 14 dias de
-  abril). Isso evita apontar divergência só porque um evento também ocupa
-  dias de outro mês.
-- **Agrupa** por matrícula + tipo de ocorrência (tratando "Abono" =
-  "abono", "Tratamento de saúde" = "Tratamento De Saúde" etc. — a
-  comparação ignora maiúscula/minúscula e acentuação) e soma os dias.
-- **Aponta 3 tipos de divergência**:
-  - *Só na secretaria*: ocorrência que a secretaria lançou e o sistema não tem.
-  - *Só no sistema*: ocorrência que o sistema tem e a secretaria não lançou.
-  - *Quantidade de dias divergente*: ambos têm o mesmo tipo de ocorrência
-    para a mesma pessoa, mas a soma de dias (já recortada ao mês) não bate.
+Em vez de somar a quantidade total de dias por tipo de ocorrência, o
+script:
 
-## Um padrão que ainda vai aparecer bastante
+1. **Expande** cada ocorrência de cada relatório em dias individuais
+   (ex.: "Férias regulamentares, 02/04 a 16/04" vira 15 dias marcados
+   como "Férias regulamentares"), recortando para dentro do mês de
+   referência.
+2. Para cada matrícula, **percorre dia a dia** o mês inteiro comparando
+   o tipo lançado pela secretaria com o tipo lançado pelo sistema
+   naquele dia específico.
+3. Quando os dois batem (inclusive quando os dois não têm nada = dia
+   normal), não gera nada. Quando divergem, cria uma retificação.
+4. **Agrupa dias consecutivos** com o mesmo "de → para" num único
+   intervalo (é por isso que "28 a 30/04, 3 dias" sai como uma linha só,
+   não três).
 
-Mesmo recortando ao mês, sobra uma categoria de divergência sistemática:
-quando o evento **começa dentro do mês mas continua depois** (ex.: férias
-que começam em 15/04 e só terminam em 14/05), a secretaria parece registrar
-o **total do evento inteiro** (30 dias), não só a parte de abril — enquanto
-o sistema, já recortado por este script, mostra só os dias dentro do mês
-(16). Isso é diferente do caso "começou antes do mês", onde a secretaria já
-parece mostrar só a parte de abril. Ou seja: a secretaria parece contar o
-evento inteiro no mês em que ele *começa*, e a parte restante nos meses
-seguintes só quando o evento também começou antes deles. Vale confirmar essa
-regra com quem gera o relatório da secretaria — mas dá pra reconhecer esse
-padrão pelo nome da ocorrência (Férias regulamentares, Férias prêmio,
-Afastamento sem vencimentos, Auxílio doença, Cedido sem ônus para cedente
-são os tipos que mais aparecem aqui) e pela quantidade da secretaria ser bem
-maior que a do sistema recortado.
+Isso resolve sozinho o problema de eventos que também ocupam dias de
+outro mês (ex.: férias que começaram em março): nos dias que caem dentro
+de abril, o tipo bate normalmente entre os dois relatórios, mesmo que a
+duração total do evento (contando os dias de março) não bata — então
+não é mais preciso calcular ou sinalizar essa diferença separadamente.
+
+Há 3 "sabores" de retificação (cores diferentes no Excel):
+
+- **Amarelo — SEM REGISTRO → tipo do sistema**: a secretaria não tinha
+  nada lançado nesse dia (ou só "Frequência normal"), mas o sistema tem
+  uma ocorrência. Precisa lançar na secretaria.
+- **Azul — tipo da secretaria → sem registro em sistema**: a secretaria
+  lançou algo, mas o sistema não tem nada para aquele dia. Vale conferir
+  se é pra lançar no sistema ou se a secretaria lançou errado.
+- **Laranja — tipo A → tipo B**: os dois têm algo lançado, mas tipos
+  diferentes (o caso mais comum é "Aguardando perícia sempem" na
+  secretaria virando "Tratamento De Saúde" no sistema).
 
 ## Ajustando o "de-para" de tipos de ocorrência
 
 Se aparecer um tipo de ocorrência escrito de formas diferentes nos dois
-relatórios (tipo "Falta" na secretaria virando "Faltas Efetivos" no
-sistema, que eu já mapeei), adicione o par em `ALIASES`, no topo de
-`src/compare.py`:
+relatórios mas que na prática é o mesmo tipo (tipo "Falta" na secretaria
+virando "Faltas Efetivos" no sistema, que eu já mapeei — sem isso o
+script ia comparar dia a dia e ver como se fossem tipos diferentes),
+adicione o par em `ALIASES`, no topo de `src/compare.py`:
 
 ```python
 ALIASES = {
@@ -100,6 +107,17 @@ ALIASES = {
 ```
 (As chaves/valores devem estar em minúsculas e sem acento — é assim que
 o código normaliza antes de comparar.)
+
+## O que o script NÃO consegue pegar sozinho
+
+Se a classificação correta de um dia não existe em **nenhum dos dois**
+relatórios (por exemplo, você sabe por um atestado à parte que um dia
+deveria ser "Doença em Pessoa da Família", mas nem a secretaria nem o
+sistema têm isso registrado), o script só consegue apontar "secretaria
+tem X, sistema não tem nada" — ele não tem como adivinhar qual é o tipo
+correto quando essa informação vem de fora dos dois PDFs. Nesses casos a
+retificação sai como "... --> sem registro em sistema" e cabe a você
+completar manualmente com a informação que só você tem.
 
 ## Limitações conhecidas
 
@@ -111,7 +129,8 @@ o código normaliza antes de comparar.)
   direto e olhe a lista impressa.
 - A comparação depende de a matrícula ser idêntica nos dois relatórios
   (ela é, nos dois modelos vistos até agora — `NN.NNN-N`).
-- O recorte ao mês só é aplicado ao lado do **sistema** (que tem data
-  inicial e final). O lado da **secretaria** só tem uma data e uma
-  quantidade — é usado como está, sem recorte (ver seção acima sobre o
-  padrão de eventos que começam dentro do mês).
+- Para ocorrências de vários dias, a secretaria só informa a data de
+  início + quantidade — o script assume que os dias são corridos a
+  partir dali (`data + quantidade - 1`). Isso bateu em todos os casos
+  conferidos até agora, mas se algum tipo de ocorrência não for
+  contínuo dessa forma, pode gerar um recorte errado.

@@ -1,19 +1,23 @@
 # -*- coding: utf-8 -*-
 """
-Compara os registros extraídos da SECRETARIA com os do SISTEMA,
-agregando por (matrícula, tipo de ocorrência) e apontando divergências:
-  - ocorrência só na secretaria
-  - ocorrência só no sistema
-  - mesma ocorrência, mas quantidade de dias diferente
+Compara os registros extraídos da SECRETARIA com os do SISTEMA dia a dia,
+dentro do mês de referência, e monta a lista de "retificações": para
+cada matrícula e cada dia em que o tipo registrado pela secretaria não
+bate com o tipo registrado pelo sistema, gera uma linha no formato
 
-A comparação considera SOMENTE os dias que caem dentro do mês de
-referência: se um período do sistema começa antes ou termina depois do
-mês (ex.: férias que começaram em março), só a fatia de dias dentro do
-mês entra na soma. Isso evita apontar como "divergência" algo que na
-verdade é só o evento continuar fora do mês.
+    matricula - nome - data(s) - X dia(s) - tipo_secretaria --> tipo_sistema
+
+(dias consecutivos com o mesmo par "de/para" são agrupados num intervalo,
+igual ao que se faz na conferência manual).
+
+Comparar dia a dia — em vez de somar quantidades totais por tipo — já
+resolve sozinho o problema de eventos que também ocupam dias de outro
+mês: nos dias que efetivamente caem dentro do mês de referência, o tipo
+bate normalmente, mesmo que a duração total do evento (fora do mês) não
+bata com o que está na secretaria.
 """
 import unicodedata
-from datetime import date
+from datetime import date, timedelta
 from collections import Counter
 
 # Tipos que representam "nada a registrar" e não entram na comparação
@@ -24,6 +28,9 @@ TIPOS_IGNORADOS = {"frequencia normal"}
 ALIASES = {
     "falta": "faltas efetivos",
 }
+
+ROTULO_SEM_REGISTRO_SECRETARIA = "SEM REGISTRO"
+ROTULO_SEM_REGISTRO_SISTEMA = "sem registro em sistema"
 
 
 def _normalizar(texto):
@@ -66,99 +73,117 @@ def mes_referencia(regs_secretaria):
 
 def _limites_mes(ano, mes):
     primeiro = date(ano, mes, 1)
-    ultimo = (date(ano, mes + 1, 1) if mes < 12 else date(ano + 1, 1, 1))
-    return primeiro, ultimo  # ultimo é exclusivo (1º dia do mês seguinte)
+    ultimo_excl = (date(ano, mes + 1, 1) if mes < 12 else date(ano + 1, 1, 1))
+    ultimo_incl = ultimo_excl - timedelta(days=1)
+    return primeiro, ultimo_incl
 
 
-def _dias_dentro_do_mes(d_ini, d_fim, primeiro_dia, ultimo_dia_excl):
-    """Quantos dias do intervalo [d_ini, d_fim] (inclusive) caem dentro do
-    mês de referência. Se não houver sobreposição, retorna 0."""
-    if d_ini is None:
-        return None  # sem data para recortar, mantém o valor original
-    if d_fim is None:
-        d_fim = d_ini
-    inicio = max(d_ini, primeiro_dia)
-    fim = min(d_fim, date.fromordinal(ultimo_dia_excl.toordinal() - 1))
-    delta = (fim - inicio).days + 1
-    return max(delta, 0)
-
-
-def agregar(registros, campo_tipo, campo_qtde, campo_data_ini=None,
-            campo_data_fim=None, limites_mes=None):
-    """Soma dias por (matricula, tipo_canonico). Retorna dict:
-    {(matricula, tipo_canonico): {"dias", "nome", "rotulo"}}
-
-    Se `limites_mes` (primeiro_dia, ultimo_dia_excl) for informado e o
-    registro tiver datas, a quantidade somada é recortada para os dias
-    que caem dentro do mês — não o total do evento inteiro.
+def _expandir_dias(registros, campo_tipo, campo_data_ini, campo_data_fim,
+                    campo_qtde, primeiro_dia, ultimo_dia_incl):
+    """Expande cada ocorrência em entradas por dia, recortadas ao mês.
+    Retorna (mapa, nomes):
+      mapa: {(matricula, date): rotulo_original_da_ocorrencia}
+      nomes: {matricula: nome}
     """
-    agregados = {}
+    mapa = {}
+    nomes = {}
     for r in registros:
-        tipo_canon = _tipo_canonico(r[campo_tipo])
+        matricula = r["matricula"]
+        nomes.setdefault(matricula, r["nome"])
+
+        tipo_raw = r[campo_tipo]
+        tipo_canon = _tipo_canonico(tipo_raw)
         if tipo_canon in TIPOS_IGNORADOS:
             continue
 
-        qtd = r[campo_qtde] or 0.0
-        if limites_mes and campo_data_ini:
-            d_ini = _parse_data(r.get(campo_data_ini))
-            d_fim = _parse_data(r.get(campo_data_fim)) if campo_data_fim else d_ini
-            dias_no_mes = _dias_dentro_do_mes(d_ini, d_fim, *limites_mes)
-            if dias_no_mes is not None:
-                qtd = dias_no_mes
+        d_ini = _parse_data(r.get(campo_data_ini))
+        if d_ini is None:
+            continue
 
-        chave = (r["matricula"], tipo_canon)
-        if chave not in agregados:
-            agregados[chave] = {"dias": 0.0, "nome": r["nome"], "rotulo": r[campo_tipo]}
-        item = agregados[chave]
-        item["dias"] += qtd
-        if len(r[campo_tipo] or "") > len(item["rotulo"] or ""):
-            item["rotulo"] = r[campo_tipo]
-    return agregados
+        if campo_data_fim:
+            d_fim = _parse_data(r.get(campo_data_fim)) or d_ini
+        else:
+            # a secretaria só informa a data de início + quantidade de
+            # dias corridos a partir dela
+            qtd = r.get(campo_qtde) or 1
+            try:
+                qtd_i = max(int(round(qtd)), 1)
+            except (TypeError, ValueError):
+                qtd_i = 1
+            d_fim = d_ini + timedelta(days=qtd_i - 1)
+
+        inicio = max(d_ini, primeiro_dia)
+        fim = min(d_fim, ultimo_dia_incl)
+        d = inicio
+        while d <= fim:
+            mapa[(matricula, d)] = tipo_raw
+            d += timedelta(days=1)
+
+    return mapa, nomes
 
 
-def comparar(regs_secretaria, regs_sistema, tolerancia_dias=0.0, ano_mes=None):
-    """Retorna (divergencias, (ano_ref, mes_ref)).
+def comparar_por_dia(regs_secretaria, regs_sistema, ano_mes=None):
+    """Retorna (retificacoes, (ano_ref, mes_ref)).
 
-    ano_mes: opcional, tupla (ano, mes) para forçar o mês de referência
-    em vez de descobrir pela moda das datas da secretaria.
+    Cada item de `retificacoes`:
+      matricula, nome, data_inicio, data_fim, dias,
+      tipo_secretaria (rótulo ou "SEM REGISTRO"),
+      tipo_sistema (rótulo ou "sem registro em sistema")
     """
     ano_ref, mes_ref = ano_mes or mes_referencia(regs_secretaria) or (None, None)
-    limites = _limites_mes(ano_ref, mes_ref) if ano_ref else None
+    if not ano_ref:
+        return [], (None, None)
 
-    agr_sec = agregar(regs_secretaria, "ocorrencia", "qtde_dias", "data")
-    agr_sis = agregar(regs_sistema, "descricao", "qtde_dias", "data_inicial",
-                       "data_final", limites_mes=limites)
+    primeiro_dia, ultimo_dia_incl = _limites_mes(ano_ref, mes_ref)
 
-    todas_chaves = set(agr_sec) | set(agr_sis)
-    divergencias = []
+    mapa_sec, nomes_sec = _expandir_dias(
+        regs_secretaria, "ocorrencia", "data", None, "qtde_dias",
+        primeiro_dia, ultimo_dia_incl)
+    mapa_sis, nomes_sis = _expandir_dias(
+        regs_sistema, "descricao", "data_inicial", "data_final", "qtde_dias",
+        primeiro_dia, ultimo_dia_incl)
 
-    for chave in sorted(todas_chaves, key=lambda c: (c[0], c[1])):
-        matricula, tipo = chave
-        sec = agr_sec.get(chave)
-        sis = agr_sis.get(chave)
+    nomes = {**nomes_sis, **nomes_sec}  # nomes_sec prevalece (fonte com todo mundo)
 
-        dias_sec = sec["dias"] if sec else None
-        dias_sis = sis["dias"] if sis else None
-        nome = (sec or sis)["nome"]
-        rotulo = (sec or sis)["rotulo"]
+    retificacoes = []
+    for matricula in sorted(nomes):
+        nome = nomes[matricula]
+        pendente = None  # dict: par, inicio, fim
 
-        if sec and not sis:
-            situacao = "Só na secretaria (sistema não tem)"
-        elif sis and not sec:
-            situacao = "Só no sistema (secretaria não tem)"
-        elif abs((dias_sec or 0) - (dias_sis or 0)) > tolerancia_dias:
-            situacao = "Quantidade de dias divergente"
-        else:
-            continue  # bate certinho, não é divergência
+        def fechar():
+            if pendente is None:
+                return
+            val_sec, val_sis = pendente["par"]
+            dias = (pendente["fim"] - pendente["inicio"]).days + 1
+            retificacoes.append({
+                "matricula": matricula,
+                "nome": nome,
+                "data_inicio": pendente["inicio"],
+                "data_fim": pendente["fim"],
+                "dias": dias,
+                "tipo_secretaria": val_sec or ROTULO_SEM_REGISTRO_SECRETARIA,
+                "tipo_sistema": val_sis or ROTULO_SEM_REGISTRO_SISTEMA,
+            })
 
-        divergencias.append({
-            "matricula": matricula,
-            "nome": nome,
-            "tipo_ocorrencia": rotulo,
-            "dias_secretaria": dias_sec,
-            "dias_sistema": dias_sis,
-            "diferenca": (dias_sec or 0) - (dias_sis or 0),
-            "situacao": situacao,
-        })
+        d = primeiro_dia
+        while d <= ultimo_dia_incl:
+            val_sec = mapa_sec.get((matricula, d))
+            val_sis = mapa_sis.get((matricula, d))
+            tipo_sec_canon = _tipo_canonico(val_sec) if val_sec else None
+            tipo_sis_canon = _tipo_canonico(val_sis) if val_sis else None
 
-    return divergencias, (ano_ref, mes_ref)
+            if tipo_sec_canon != tipo_sis_canon:
+                par = (val_sec, val_sis)
+                if pendente and pendente["par"] == par:
+                    pendente["fim"] = d
+                else:
+                    fechar()
+                    pendente = {"par": par, "inicio": d, "fim": d}
+            else:
+                fechar()
+                pendente = None
+            d += timedelta(days=1)
+        fechar()
+
+    retificacoes.sort(key=lambda x: (x["matricula"], x["data_inicio"]))
+    return retificacoes, (ano_ref, mes_ref)
