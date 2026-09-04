@@ -1,59 +1,62 @@
-# Conferência de Frequência — GCM 116
+# Conferência de Frequência — Secretarias Municipais
 
 Confere, mês a mês, o relatório de frequência gerado pela **secretaria**
 ("Frequência dos Funcionários") contra o relatório gerado pelo **sistema**
 ("Relatório Ocorrência Geral"), e gera uma lista pronta de retificações:
 "nesta data, o tipo lançado deveria ser outro".
 
+O código e nome da secretaria são lidos diretamente do cabeçalho oficial do PDF
+(ex: `116 GUARDA CIVIL DO MUNICIPIO DE PIRACICABA`, `103 PROCURADORIA GERAL`),
+e os relatórios finais são salvos com essa identificação clara.
+
 ## Estrutura
 
 ```
 conferencia-frequencia/
-  venv/                     # ambiente virtual (não versionar)
+  .venv/                    # ambiente virtual
   input/
-    secretaria/AAAA-MM.pdf  # PDF que a secretaria manda
-    sistema/AAAA-MM.pdf     # PDF que o sistema gera
+    secretaria/COD - secretaria.pdf  # PDF que a secretaria manda (ex: 116 - secretaria.pdf)
+    sistema/COD - sistema.pdf        # PDF que o sistema gera (ex: 116 - sistema.pdf)
   output/
-    conferencia_AAAA-MM.xlsx      # aba "Retificações" + aba "Resumo"
-    retificacoes_AAAA-MM.md       # só se houver retificação
-    retificacoes_AAAA-MM.txt      # idem, texto puro
+    conferencia_<COD - NOME DA SECRETARIA>.xlsx      # aba "Retificações" + aba "Resumo"
+    retificacoes_<COD - NOME DA SECRETARIA>.md       # só se houver retificação
+    retificacoes_<COD - NOME DA SECRETARIA>.txt      # idem, texto puro
   src/
-    extract_secretaria.py   # lê o PDF de texto corrido da secretaria
+    extract_secretaria.py   # lê o PDF de texto corrido da secretaria e extrai cabeçalho
     extract_sistema.py      # lê o PDF em tabela do sistema
-    compare.py               # compara dia a dia dentro do mês de referência
-    main.py                  # roda tudo e gera Excel + md + txt
+    compare.py              # compara dia a dia dentro do mês de referência
+    main.py                 # processa em lote ou individualmente e gera Excel + md + txt
   requirements.txt
 ```
 
-## Uso mensal
+## Uso Mensal
 
-1. Salve os dois PDFs do mês em:
-   - `input/secretaria/AAAA-MM.pdf`
-   - `input/sistema/AAAA-MM.pdf`
+### Modo 1: Processamento Automático em Lote (Recomendado)
 
-2. Rode:
-   ```bash
-   ./venv/bin/python src/main.py input/secretaria/AAAA-MM.pdf input/sistema/AAAA-MM.pdf
-   ```
-   O script descobre o mês de referência sozinho (pela data mais comum no
-   relatório da secretaria). Se quiser forçar, use `--mes AAAA-MM`:
-   ```bash
-   ./venv/bin/python src/main.py input/secretaria/2026-04.pdf input/sistema/2026-04.pdf --mes 2026-04
-   ```
+Basta salvar os PDFs na pasta `input/`:
+- `input/secretaria/COD - secretaria.pdf`
+- `input/sistema/COD - sistema.pdf`
 
-3. Confira a saída em `output/`:
-   - `conferencia_AAAA-MM.xlsx` — sempre gerado, aba **Retificações**
-     (colorida) + aba **Resumo**.
-   - `retificacoes_AAAA-MM.md` e `.txt` — **só gerados se houver
-     retificação**, já no formato:
-     ```
-     10.688-3 - GILDEMAR PEREIRA DE SOUZA - 27/04/2026 - 1 dia - Aguardando perícia sempem --> Tratamento De Saúde
-     ```
-     prontos pra colar num e-mail/chamado sem precisar reformatar nada.
+E rodar no terminal (com a `.venv` ativada):
+```bash
+python src/main.py
+```
+O script encontra todos os pares disponíveis automaticamente, extrai o nome de cada secretaria e o mês de referência, e processa tudo de uma única vez.
 
-(Se preferir, dá pra criar um `.bat`/alias/atalho chamando esses dois
-comandos, ou eu adapto para vasculhar `input/` inteiro e gerar todos os
-meses pendentes de uma vez — é só pedir.)
+### Modo 2: Processamento Individual
+
+Se quiser rodar apenas um par específico:
+```bash
+python src/main.py "input/secretaria/116 - secretaria.pdf" "input/sistema/116 - sistema.pdf"
+```
+Se quiser forçar um mês específico, utilize o parâmetro `--mes AAAA-MM`:
+```bash
+python src/main.py "input/secretaria/116 - secretaria.pdf" "input/sistema/116 - sistema.pdf" --mes 2026-07
+```
+
+### Saídas Geradas em `output/`:
+- `conferencia_<COD - NOME DA SECRETARIA>.xlsx` — Planilha Excel com aba **Retificações** (colorida por tipo de erro) + aba **Resumo**.
+- `retificacoes_<COD - NOME DA SECRETARIA>.md` e `.txt` — **Só gerados se houver retificação**, já prontos para copiar e colar em e-mails/chamados.
 
 ## Como a comparação funciona (dia a dia)
 

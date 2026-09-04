@@ -27,6 +27,7 @@ TIPOS_IGNORADOS = {"frequencia normal"}
 # (chave e valor já devem estar normalizados por _normalizar)
 ALIASES = {
     "falta": "faltas efetivos",
+    "minutos perdidos": "minutos perd efetivos",
 }
 
 ROTULO_SEM_REGISTRO_SECRETARIA = "SEM REGISTRO"

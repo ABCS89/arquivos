@@ -38,20 +38,58 @@ IGNORAR_SUBSTRINGS = [
     "materializada por",
     "sempapel.piracicaba",
     "CPF:",
-    "GUARDA CIVIL DO MUNICÍPIO",
     "NÚCLEO DE APOIO",
 ]
 
 
+def extrair_cabecalho(caminho_pdf):
+    """Extrai código da secretaria, nome da secretaria e mês/ano de referência do cabeçalho da página 1."""
+    codigo_sec, nome_sec, mes_ano_ref = None, None, None
+    with pdfplumber.open(caminho_pdf) as pdf:
+        if not pdf.pages:
+            return None, None, None
+        texto = pdf.pages[0].extract_text() or ""
+        for linha in texto.split("\n")[:20]:
+            linha_limpa = linha.strip()
+
+            # 1. Mês/Ano de referência (ex: Referente: Julho/2026)
+            m_ref = re.search(r"Referente:\s*([A-Za-zçÇ]+)/(\d{4})", linha_limpa)
+            if m_ref and not mes_ano_ref:
+                mes_str, ano_str = m_ref.groups()
+                meses = {
+                    "janeiro": 1, "fevereiro": 2, "março": 3, "marco": 3, "abril": 4,
+                    "maio": 5, "junho": 6, "julho": 7, "agosto": 8, "setembro": 9,
+                    "outubro": 10, "novembro": 11, "dezembro": 12
+                }
+                num_mes = meses.get(mes_str.lower())
+                if num_mes:
+                    mes_ano_ref = (int(ano_str), num_mes)
+
+            # 2. Código e Nome da Secretaria (ex: 116 GUARDA CIVIL DO MUNICIPIO DE PIRACICABA)
+            m_sec = re.match(r"^(\d{3})\s+([A-ZÁÉÍÓÚÀÈÌÒÙÃÕÂÊÎÔÛÇ][A-ZÁÉÍÓÚÀÈÌÒÙÃÕÂÊÎÔÛÇ\s,\.\-/]+)$", linha_limpa)
+            if m_sec and not codigo_sec:
+                codigo_sec = m_sec.group(1)
+                nome_sec = m_sec.group(2).strip()
+
+    return codigo_sec, nome_sec, mes_ano_ref
+
+
 def _eh_ignoravel(linha):
-    if not linha.strip():
+    linha_limpa = linha.strip()
+    if not linha_limpa:
         return True
-    if re.match(r"^\d+/\d+$", linha.strip()):  # "1/7", "2/7"...
+    if re.match(r"^\d+/\d+$", linha_limpa):  # "1/7", "2/7"...
         return True
-    if re.match(r"^\d{2}-\d{2}", linha.strip()):  # "00-00", "00-00-000"...
+    if re.match(r"^\d{2,4}-\d{2}", linha_limpa):  # "00-00", "00-00-000", "10-81"...
+        return True
+    if re.match(r"^\d{3}\s+[A-ZÁÉÍÓÚÀÈÌÒÙÃÕÂÊÎÔÛÇ]", linha_limpa):  # cabeçalho com código e nome da secretaria
+        return True
+    if re.match(r"^\d{2,4}[-\d]+\s+[A-ZÁÉÍÓÚÀÈÌÒÙÃÕÂÊÎÔÛÇ]", linha_limpa):  # subdivisão de departamento
+        return True
+    if "http://" in linha_limpa or "https://" in linha_limpa:
         return True
     for s in IGNORAR_SUBSTRINGS:
-        if s in linha:
+        if s in linha_limpa:
             return True
     return False
 

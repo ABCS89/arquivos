@@ -40,7 +40,7 @@ def extrair(caminho_pdf):
                     nome, data_ini, data_fim, qtde, *desc = resto
                     if not re.match(r"\d{2}/\d{2}/\d{4}", data_ini):
                         continue
-                    descricao = " ".join(desc).strip()
+                    descricao = " ".join(" ".join(desc).split()).strip()
                     try:
                         qtde_f = float(qtde.replace(".", "").replace(",", "."))
                     except ValueError:

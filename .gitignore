@@ -30,3 +30,13 @@ unimed/template/.~lock.template.docx\#
 
 unimed/gerar_emails/*.md
 unimed\gerar_emails\*.md
+
+# Conferencia de Frequencia - Dados Sensiveis
+/conferencia-frequencia/input/
+/conferencia-frequencia/output/
+
+# Python
+__pycache__/
+*.py[cod]
+
+
