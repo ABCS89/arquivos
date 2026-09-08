@@ -6,19 +6,38 @@ funcionário aparece em uma linha "MATRICULA NOME OCORRENCIA [DATA QTDE]"
 e, se tiver mais de uma ocorrência no mês, as ocorrências extras vêm em
 linhas seguintes só com "OCORRENCIA DATA QTDE" (sem repetir matrícula/nome).
 
-Estratégia: como os nomes vêm 100% em CAIXA ALTA e as ocorrências vêm em
-Formato Título (só a 1ª letra maiúscula), separamos nome de ocorrência
-procurando o primeiro token que não é totalmente maiúsculo.
+Suporta leitura de texto nativo com pdfplumber e fallback transparente
+com OCR nativo do Windows (winocr + pypdfium2) para PDFs em imagem/curvas.
 """
 import re
+import sys
+from pathlib import Path
 import pdfplumber
 
-MATRICULA_RE = re.compile(r"^\d{2}\.\d{3}-\d\b")
+# Importa o módulo de OCR auxiliar
+try:
+    from ocr_helper import (
+        ocr_disponivel,
+        extrair_linhas_pagina_ocr,
+        extrair_texto_pdf_ocr,
+        normalizar_linha_ocr
+    )
+except ImportError:
+    from src.ocr_helper import (
+        ocr_disponivel,
+        extrair_linhas_pagina_ocr,
+        extrair_texto_pdf_ocr,
+        normalizar_linha_ocr
+    )
+
+MATRICULA_RE = re.compile(r"^(\d{2})[\.,](\d{3})[-_ ](\d\b)")
 DATE_QTY_TAIL_RE = re.compile(r"(\d{2}/\d{2}/\d{4})\s+([\d\.,]+)\s*$")
+DATE_ONLY_TAIL_RE = re.compile(r"(\d{2}/\d{2}/\d{4})\s*$")
 
 # linhas de cabeçalho/rodapé/assinatura a ignorar
 IGNORAR_SUBSTRINGS = [
     "PREFEITURA DO MUNICÍPIO",
+    "PREFEITURA DO DE PIRACICABA",
     "Frequência dos Funcionários",
     "Referente:",
     "Nro Funcional Nome",
@@ -39,37 +58,60 @@ IGNORAR_SUBSTRINGS = [
     "sempapel.piracicaba",
     "CPF:",
     "NÚCLEO DE APOIO",
+    "sistemas.pmp.sp.gov.br",
 ]
+
+MESES = {
+    "janeiro": 1, "fevereiro": 2, "março": 3, "marco": 3, "abril": 4,
+    "maio": 5, "junho": 6, "julho": 7, "agosto": 8, "setembro": 9,
+    "outubro": 10, "novembro": 11, "dezembro": 12
+}
+
+
+def _parse_cabecalho_linhas(linhas):
+    """Auxiliar para extrair código, secretaria e mês/ano de uma lista de linhas."""
+    codigo_sec, nome_sec, mes_ano_ref = None, None, None
+    for linha in linhas[:25]:
+        linha_limpa = linha.strip()
+
+        # 1. Mês/Ano de referência (ex: Referente: Julho/2026 ou Referente: Agosto/2026)
+        m_ref = re.search(r"Referente:\s*([A-Za-zçÇ]+)/(\d{4})", linha_limpa)
+        if m_ref and not mes_ano_ref:
+            mes_str, ano_str = m_ref.groups()
+            num_mes = MESES.get(mes_str.lower())
+            if num_mes:
+                mes_ano_ref = (int(ano_str), num_mes)
+
+        # 2. Código e Nome da Secretaria (ex: 108 SECRETARIA MUNICIPAL DE OBRAS, INFRAESTRUTURA...)
+        m_sec = re.match(r"^(\d{3})\s+([A-ZÁÉÍÓÚÀÈÌÒÙÃÕÂÊÎÔÛÇ][A-ZÁÉÍÓÚÀÈÌÒÙÃÕÂÊÎÔÛÇ\s,\.\-/]+)$", linha_limpa)
+        if m_sec and not codigo_sec:
+            codigo_sec = m_sec.group(1)
+            nome_sec = m_sec.group(2).strip()
+
+    return codigo_sec, nome_sec, mes_ano_ref
 
 
 def extrair_cabecalho(caminho_pdf):
     """Extrai código da secretaria, nome da secretaria e mês/ano de referência do cabeçalho da página 1."""
     codigo_sec, nome_sec, mes_ano_ref = None, None, None
     with pdfplumber.open(caminho_pdf) as pdf:
-        if not pdf.pages:
-            return None, None, None
-        texto = pdf.pages[0].extract_text() or ""
-        for linha in texto.split("\n")[:20]:
-            linha_limpa = linha.strip()
+        if pdf.pages:
+            texto = pdf.pages[0].extract_text() or ""
+            codigo_sec, nome_sec, mes_ano_ref = _parse_cabecalho_linhas(texto.split("\n"))
 
-            # 1. Mês/Ano de referência (ex: Referente: Julho/2026)
-            m_ref = re.search(r"Referente:\s*([A-Za-zçÇ]+)/(\d{4})", linha_limpa)
-            if m_ref and not mes_ano_ref:
-                mes_str, ano_str = m_ref.groups()
-                meses = {
-                    "janeiro": 1, "fevereiro": 2, "março": 3, "marco": 3, "abril": 4,
-                    "maio": 5, "junho": 6, "julho": 7, "agosto": 8, "setembro": 9,
-                    "outubro": 10, "novembro": 11, "dezembro": 12
-                }
-                num_mes = meses.get(mes_str.lower())
-                if num_mes:
-                    mes_ano_ref = (int(ano_str), num_mes)
-
-            # 2. Código e Nome da Secretaria (ex: 116 GUARDA CIVIL DO MUNICIPIO DE PIRACICABA)
-            m_sec = re.match(r"^(\d{3})\s+([A-ZÁÉÍÓÚÀÈÌÒÙÃÕÂÊÎÔÛÇ][A-ZÁÉÍÓÚÀÈÌÒÙÃÕÂÊÎÔÛÇ\s,\.\-/]+)$", linha_limpa)
-            if m_sec and not codigo_sec:
-                codigo_sec = m_sec.group(1)
-                nome_sec = m_sec.group(2).strip()
+    # Fallback via OCR se não encontrou cabeçalho completo no texto nativo
+    if (not codigo_sec or not mes_ano_ref) and ocr_disponivel():
+        try:
+            import pypdfium2 as pdfium
+            doc = pdfium.PdfDocument(str(caminho_pdf))
+            if len(doc) > 0:
+                linhas_p0 = extrair_linhas_pagina_ocr(doc[0])
+                c_ocr, n_ocr, m_ocr = _parse_cabecalho_linhas(linhas_p0)
+                codigo_sec = codigo_sec or c_ocr
+                nome_sec = nome_sec or n_ocr
+                mes_ano_ref = mes_ano_ref or m_ocr
+        except Exception:
+            pass
 
     return codigo_sec, nome_sec, mes_ano_ref
 
@@ -89,7 +131,7 @@ def _eh_ignoravel(linha):
     if "http://" in linha_limpa or "https://" in linha_limpa:
         return True
     for s in IGNORAR_SUBSTRINGS:
-        if s in linha_limpa:
+        if s.lower() in linha_limpa.lower():
             return True
     return False
 
@@ -116,76 +158,116 @@ def _separar_nome_ocorrencia(texto):
     return nome, ocorrencia
 
 
-def extrair(caminho_pdf):
-    """Retorna lista de dicts: matricula, nome, ocorrencia, data, qtde_dias."""
+def _processar_linhas(linhas):
+    """Processa uma lista de linhas de texto e extrai os registros dos funcionários."""
     registros = []
     matricula_atual = None
     nome_atual = None
     nao_reconhecidas = []
 
+    for linha in linhas:
+        linha = normalizar_linha_ocr(linha.strip())
+        if _eh_ignoravel(linha):
+            continue
+
+        m_data_qty = DATE_QTY_TAIL_RE.search(linha)
+        data, qtde = (None, None)
+        corpo = linha
+        if m_data_qty:
+            data, qtde_str = m_data_qty.groups()
+            corpo = linha[: m_data_qty.start()].strip()
+            try:
+                qtde = float(qtde_str.replace(".", "").replace(",", "."))
+            except ValueError:
+                qtde = None
+        else:
+            m_data_only = DATE_ONLY_TAIL_RE.search(linha)
+            if m_data_only:
+                data = m_data_only.group(1)
+                corpo = linha[: m_data_only.start()].strip()
+                qtde = 1.0
+
+        m_mat = MATRICULA_RE.match(linha)
+        if m_mat:
+            # Normaliza para o formato padrão XX.XXX-X
+            matricula_atual = f"{m_mat.group(1)}.{m_mat.group(2)}-{m_mat.group(3)}"
+            pos_fim = m_mat.end()
+            resto = linha[pos_fim:].strip()
+            if m_data_qty:
+                resto_corpo = corpo[pos_fim:].strip()
+            else:
+                resto_corpo = resto
+            nome_atual, ocorrencia = _separar_nome_ocorrencia(resto_corpo)
+            registros.append({
+                "matricula": matricula_atual,
+                "nome": nome_atual,
+                "ocorrencia": ocorrencia,
+                "data": data,
+                "qtde_dias": qtde,
+            })
+        elif m_data_qty and corpo and corpo[:1].isalpha() and corpo[:1].isupper():
+            # linha de continuação (ocorrência extra do último funcionário)
+            if matricula_atual is None:
+                nao_reconhecidas.append(linha)
+                continue
+            ocorrencia = corpo.strip()
+            registros.append({
+                "matricula": matricula_atual,
+                "nome": nome_atual,
+                "ocorrencia": ocorrencia,
+                "data": data,
+                "qtde_dias": qtde,
+            })
+        else:
+            nao_reconhecidas.append(linha)
+
+    return registros, nao_reconhecidas
+
+
+def extrair(caminho_pdf):
+    """Retorna lista de dicts: matricula, nome, ocorrencia, data, qtde_dias."""
+    # 1. Tenta extrair diretamente via pdfplumber
+    linhas_texto = []
     with pdfplumber.open(caminho_pdf) as pdf:
         for pagina in pdf.pages:
             texto = pagina.extract_text() or ""
-            for linha in texto.split("\n"):
-                linha = linha.strip()
-                if _eh_ignoravel(linha):
-                    continue
+            linhas_texto.extend(texto.split("\n"))
 
-                m_data_qty = DATE_QTY_TAIL_RE.search(linha)
-                data, qtde = (None, None)
-                corpo = linha
-                if m_data_qty:
-                    data, qtde_str = m_data_qty.groups()
-                    corpo = linha[: m_data_qty.start()].strip()
-                    try:
-                        qtde = float(qtde_str.replace(".", "").replace(",", "."))
-                    except ValueError:
-                        qtde = None
+    registros, nao_reconhecidas = _processar_linhas(linhas_texto)
 
-                if MATRICULA_RE.match(linha):
-                    matricula_atual = linha[:8]
-                    resto = linha[8:].strip()
-                    if m_data_qty:
-                        resto_corpo = corpo[8:].strip()
-                    else:
-                        resto_corpo = resto
-                    nome_atual, ocorrencia = _separar_nome_ocorrencia(resto_corpo)
-                    registros.append({
-                        "matricula": matricula_atual,
-                        "nome": nome_atual,
-                        "ocorrencia": ocorrencia,
-                        "data": data,
-                        "qtde_dias": qtde,
-                    })
-                elif m_data_qty and corpo and corpo[:1].isalpha() and corpo[:1].isupper():
-                    # linha de continuação (ocorrência extra do último funcionário)
-                    # só aceitamos se tiver de fato "data + quantidade" no final,
-                    # senão é ruído de marca d'água/rodapé espelhado no PDF
-                    if matricula_atual is None:
-                        nao_reconhecidas.append(linha)
-                        continue
-                    ocorrencia = corpo.strip()
-                    registros.append({
-                        "matricula": matricula_atual,
-                        "nome": nome_atual,
-                        "ocorrencia": ocorrencia,
-                        "data": data,
-                        "qtde_dias": qtde,
-                    })
-                else:
-                    nao_reconhecidas.append(linha)
+    # 2. Se nenhum registro foi encontrado e o OCR estiver disponível, aciona fallback
+    if len(registros) == 0 and ocr_disponivel():
+        nome_arquivo = Path(caminho_pdf).name
+        print(f"  [INFO] O arquivo '{nome_arquivo}' está em formato de imagem/curvas.")
+        print(f"         Executando OCR automático nativo do Windows...")
+        try:
+            paginas_ocr = extrair_texto_pdf_ocr(caminho_pdf)
+            linhas_ocr = []
+            for p_texto in paginas_ocr:
+                linhas_ocr.extend(p_texto.split("\n"))
+            registros, nao_reconhecidas = _processar_linhas(linhas_ocr)
+            print(f"  [OK] OCR concluído com sucesso: {len(registros)} registro(s) extraído(s)!")
+        except Exception as e:
+            print(f"  [ERRO] Falha ao executar OCR: {e}")
 
     return registros, nao_reconhecidas
 
 
 if __name__ == "__main__":
-    import sys
     import json
-    regs, nao_rec = extrair(sys.argv[1])
+    if len(sys.argv) < 2:
+        print("Uso: python extract_secretaria.py <caminho_do_pdf>")
+        print("Exemplo: python extract_secretaria.py \"../input/secretaria/108 - secretaria.pdf\"")
+        sys.exit(1)
+
+    caminho = sys.argv[1]
+    cod, nome, ref = extrair_cabecalho(caminho)
+    print(f"Cabeçalho: Código={cod}, Nome={nome}, Referência={ref}")
+    regs, nao_rec = extrair(caminho)
     print(f"{len(regs)} registros extraídos.")
     if nao_rec:
-        print(f"{len(nao_rec)} linha(s) não reconhecida(s) (normalmente ruído de "
-              f"marca d'água/rodapé — revisar só se parecer dado de verdade):")
-        for l in nao_rec:
+        print(f"{len(nao_rec)} linha(s) não reconhecida(s) (revisar se parecer dado de verdade):")
+        for l in nao_rec[:8]:
             print("   ", repr(l))
-    print(json.dumps(regs[:8], ensure_ascii=False, indent=2))
+    print("\nExemplo de registros extraídos:")
+    print(json.dumps(regs[:5], ensure_ascii=False, indent=2))

@@ -32,6 +32,7 @@ ALIASES = {
 
 ROTULO_SEM_REGISTRO_SECRETARIA = "SEM REGISTRO"
 ROTULO_SEM_REGISTRO_SISTEMA = "sem registro em sistema"
+ROTULO_FREQUENCIA_NORMAL = "Frequência normal"
 
 
 def _normalizar(texto):
@@ -156,13 +157,20 @@ def comparar_por_dia(regs_secretaria, regs_sistema, ano_mes=None):
                 return
             val_sec, val_sis = pendente["par"]
             dias = (pendente["fim"] - pendente["inicio"]).days + 1
+            if val_sec:
+                tipo_sec = val_sec
+            elif matricula in nomes_sec:
+                tipo_sec = ROTULO_FREQUENCIA_NORMAL
+            else:
+                tipo_sec = ROTULO_SEM_REGISTRO_SECRETARIA
+
             retificacoes.append({
                 "matricula": matricula,
                 "nome": nome,
                 "data_inicio": pendente["inicio"],
                 "data_fim": pendente["fim"],
                 "dias": dias,
-                "tipo_secretaria": val_sec or ROTULO_SEM_REGISTRO_SECRETARIA,
+                "tipo_secretaria": tipo_sec,
                 "tipo_sistema": val_sis or ROTULO_SEM_REGISTRO_SISTEMA,
             })
 
