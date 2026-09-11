@@ -3,6 +3,7 @@ emails.py - Geração dos modelos de e-mails em Markdown com tabelas de débitos
 """
 from datetime import datetime
 from pathlib import Path
+import urllib.parse
 import pandas as pd
 
 from .config import (
@@ -22,18 +23,33 @@ from .utils import (
 
 
 def _gerar_tabela_markdown(tabela_itens):
-    """Gera tabela visual em Markdown para exibição dos débitos."""
+    """Gera tabela visual profissional formatada com atributos nativos de e-mail (Roundcube/Outlook) e Markdown."""
     if not tabela_itens:
         return "Sem débitos."
 
     linhas = [
-        "| Competência | Vencimento | Principal | Encargos | Total |",
-        "|-------------|------------|-----------|----------|-------|",
+        '<table width="100%" border="1" cellspacing="0" cellpadding="8" bordercolor="#b0b0b0" style="border-collapse: collapse; width: 100%; border: 1px solid #b0b0b0; font-family: Calibri, Arial, sans-serif; font-size: 13px; margin: 15px 0;">',
+        '  <thead>',
+        '    <tr bgcolor="#e6ecf5" style="background-color: #e6ecf5; font-weight: bold; text-align: center;">',
+        '      <th width="20%" bgcolor="#e6ecf5" align="center" style="border: 1px solid #b0b0b0; padding: 8px; text-align: center;">Competência</th>',
+        '      <th width="20%" bgcolor="#e6ecf5" align="center" style="border: 1px solid #b0b0b0; padding: 8px; text-align: center;">Vencimento</th>',
+        '      <th width="20%" bgcolor="#e6ecf5" align="right" style="border: 1px solid #b0b0b0; padding: 8px; text-align: right;">Principal</th>',
+        '      <th width="20%" bgcolor="#e6ecf5" align="right" style="border: 1px solid #b0b0b0; padding: 8px; text-align: right;">Encargos</th>',
+        '      <th width="20%" bgcolor="#e6ecf5" align="right" style="border: 1px solid #b0b0b0; padding: 8px; text-align: right;">Total</th>',
+        '    </tr>',
+        '  </thead>',
+        '  <tbody>',
     ]
     for item in tabela_itens:
-        linhas.append(
-            f"| {item['competencia']} | {item['vencimento']} | {item['principal']} | {item['encargos']} | {item['total']} |"
-        )
+        linhas.append('    <tr>')
+        linhas.append(f'      <td width="20%" align="center" style="border: 1px solid #b0b0b0; padding: 8px; text-align: center;">{item["competencia"]}</td>')
+        linhas.append(f'      <td width="20%" align="center" style="border: 1px solid #b0b0b0; padding: 8px; text-align: center;">{item["vencimento"]}</td>')
+        linhas.append(f'      <td width="20%" align="right" style="border: 1px solid #b0b0b0; padding: 8px; text-align: right;">{item["principal"]}</td>')
+        linhas.append(f'      <td width="20%" align="right" style="border: 1px solid #b0b0b0; padding: 8px; text-align: right;">{item["encargos"]}</td>')
+        linhas.append(f'      <td width="20%" align="right" style="border: 1px solid #b0b0b0; padding: 8px; text-align: right; font-weight: bold;">{item["total"]}</td>')
+        linhas.append('    </tr>')
+    linhas.append('  </tbody>')
+    linhas.append('</table>')
     return "\n".join(linhas)
 
 
@@ -46,7 +62,15 @@ def _salvar_arquivo_md(caminho_arquivo, titulo, lista_emails):
         for email in lista_emails:
             f.write("---\n\n")
             f.write(f"## 👤 {email['nome']}\n\n")
-            f.write(f"**Para:** `{email['email']}`  \n")
+
+            mail_limpo = email['email'].strip()
+            if mail_limpo and mail_limpo.lower() != "nan" and "@" in mail_limpo:
+                assunto_enc = urllib.parse.quote(email['assunto'])
+                mailto_link = f"mailto:{mail_limpo}?subject={assunto_enc}"
+                f.write(f"**Para:** [`{mail_limpo}`]({mailto_link})  \n")
+            else:
+                f.write(f"**Para:** `{mail_limpo}`  \n")
+
             f.write(f"**Assunto:** `{email['assunto']}`  \n\n")
             f.write("### ✉️ Mensagem:\n\n")
             f.write(f"{email['mensagem']}\n\n")
@@ -115,13 +139,16 @@ def gerar_todos_emails():
         total_base = row.get("Total", "")
 
         tabela_md = ""
-        valor_total_final = formatar_moeda(total_base) if isinstance(total_base, (int, float)) else str(total_base)
+        if isinstance(total_base, (int, float)):
+            valor_total_final = formatar_valor_br(total_base)
+        else:
+            valor_total_final = str(total_base).replace("R$", "").strip()
 
         if tipo in ["aviso", "cancelado"]:
             df_func = df_dividas[df_dividas["Funcional"] == matricula] if tipo == "aviso" else df_cancelados[df_cancelados["Funcional"] == matricula]
 
             total_dividas = pd.to_numeric(df_func["Saldo (Atualizado)"], errors="coerce").fillna(0).sum()
-            valor_total_final = formatar_moeda(total_dividas)
+            valor_total_final = formatar_valor_br(total_dividas)
 
             tabela_itens = []
             for _, d in df_func.iterrows():
@@ -159,7 +186,12 @@ def gerar_todos_emails():
             data=data_envio,
             tabela=tabela_md,
         )
-        assunto = f"Boleto do Plano de Saúde Unimed – Referente a {referencia}"
+        if tipo == "aviso":
+            assunto = f"Aviso de cancelamento do Plano de Saúde Unimed – Referente a {referencia}"
+        elif tipo == "cancelado":
+            assunto = f"Plano de Saúde Unimed Cancelado – Referente a {referencia}"
+        else:
+            assunto = f"Boleto do Plano de Saúde Unimed – Referente a {referencia}"
 
         bloco = {
             "nome": nome,
