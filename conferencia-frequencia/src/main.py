@@ -26,6 +26,11 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from extract_secretaria import extrair as extrair_secretaria, extrair_cabecalho
 from extract_sistema import extrair as extrair_sistema
 from compare import comparar_por_dia
+from monitoring import (
+    apurar_dados_monitoramento,
+    gerar_markdown_monitoramento,
+    gerar_excel_monitoramento,
+)
 
 from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill, Alignment
@@ -40,6 +45,7 @@ COR_CABECALHO = "1F4E78"
 COR_SEM_REGISTRO_SECRETARIA = "FFF2CC"   # secretaria não tinha nada -> precisa lançar
 COR_SEM_REGISTRO_SISTEMA = "D9E1F2"      # sistema não tinha nada -> conferir/lançar lá
 COR_TIPO_DIFERENTE = "F8CBAD"            # os dois têm algo, mas tipos diferentes
+COR_SOBREPOSICAO = "E1D5E7"              # lilás: sobreposição de eventos na mesma data
 
 MESES_PT = ["", "janeiro", "fevereiro", "março", "abril", "maio", "junho",
             "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"]
@@ -53,6 +59,8 @@ def sanitizar_nome_arquivo(texto):
 
 
 def _cor_da_linha(r):
+    if r.get("sobreposicao"):
+        return COR_SOBREPOSICAO
     if r["tipo_secretaria"] == "SEM REGISTRO":
         return COR_SEM_REGISTRO_SECRETARIA
     if r["tipo_sistema"] == "sem registro em sistema":
@@ -67,37 +75,83 @@ def _texto_data(r):
 
 
 def _linha_texto(r):
+    if r.get("instrucao_direta"):
+        return (f'{r["matricula"]} - {r["nome"]} - {_texto_data(r)} - {r["dias"]} '
+                f'dia{"s" if r["dias"] != 1 else ""} - {r["instrucao_direta"]}')
+    obs = f' ({r["observacao"]})' if r.get("observacao") else ""
     return (f'{r["matricula"]} - {r["nome"]} - {_texto_data(r)} - {r["dias"]} '
-            f'dia{"s" if r["dias"] != 1 else ""} - {r["tipo_secretaria"]} --> {r["tipo_sistema"]}')
+            f'dia{"s" if r["dias"] != 1 else ""} - {r["tipo_secretaria"]} --> {r["tipo_sistema"]}{obs}')
 
 
-def gerar_excel(retificacoes, caminho_saida, total_sec, total_sis, mes_label, nome_orgao=""):
+def gerar_excel(retificacoes, sobreposicoes, caminho_saida, total_sec, total_sis, mes_label, nome_orgao=""):
     wb = Workbook()
 
     ws = wb.active
     ws.title = "Retificações"
     colunas = ["Matrícula", "Nome", "Data Início", "Data Fim", "Dias",
-               "Tipo Atual (a corrigir)", "Tipo Correto"]
+               "Tipo Atual (a corrigir)", "Tipo Correto", "Observação / Conflito"]
     ws.append(colunas)
     for cel in ws[1]:
         cel.font = Font(bold=True, color="FFFFFF")
         cel.fill = PatternFill("solid", fgColor=COR_CABECALHO)
         cel.alignment = Alignment(horizontal="center")
 
-    for r in retificacoes:
+    ret_divergencias = [r for r in retificacoes if r["tipo_secretaria"] != "SEM REGISTRO"]
+    ret_sem_registro = [r for r in retificacoes if r["tipo_secretaria"] == "SEM REGISTRO"]
+
+    # Ordena colocando divergências primeiro, depois servidores sem registro na secretaria
+    ret_ordenadas = ret_divergencias + ret_sem_registro
+
+    for r in ret_ordenadas:
+        obs_texto = r.get("observacao", "")
+        if r["tipo_secretaria"] == "SEM REGISTRO" and not obs_texto:
+            obs_texto = "Sem registro na secretaria (verificar possível desligamento/situação funcional)"
+
+        if r.get("instrucao_direta") and obs_texto:
+            obs_col = f"{r['instrucao_direta'].capitalize()} | {obs_texto}"
+        elif r.get("instrucao_direta"):
+            obs_col = r["instrucao_direta"].capitalize()
+        else:
+            obs_col = obs_texto
+
         ws.append([
             r["matricula"], r["nome"],
             r["data_inicio"].strftime("%d/%m/%Y"), r["data_fim"].strftime("%d/%m/%Y"),
             r["dias"], r["tipo_secretaria"], r["tipo_sistema"],
+            obs_col,
         ])
         cor = _cor_da_linha(r)
         for cel in ws[ws.max_row]:
             cel.fill = PatternFill("solid", fgColor=cor)
 
-    larguras = [12, 34, 14, 14, 8, 30, 30]
+    larguras = [12, 34, 14, 14, 8, 30, 36, 60]
     for i, w in enumerate(larguras, start=1):
         ws.column_dimensions[get_column_letter(i)].width = w
     ws.freeze_panes = "A2"
+
+    if sobreposicoes:
+        ws_sob = wb.create_sheet("Sobreposições")
+        cols_sob = ["Matrícula", "Nome", "Origem", "Data Início", "Data Fim", "Dias",
+                    "Eventos Sobrepostos", "Observação"]
+        ws_sob.append(cols_sob)
+        for cel in ws_sob[1]:
+            cel.font = Font(bold=True, color="FFFFFF")
+            cel.fill = PatternFill("solid", fgColor=COR_CABECALHO)
+            cel.alignment = Alignment(horizontal="center")
+
+        for s in sobreposicoes:
+            ws_sob.append([
+                s["matricula"], s["nome"], s["origem"],
+                s["data_inicio"].strftime("%d/%m/%Y"), s["data_fim"].strftime("%d/%m/%Y"),
+                s["dias"], s["eventos"], s["observacao"],
+            ])
+            for cel in ws_sob[ws_sob.max_row]:
+                cel.fill = PatternFill("solid", fgColor=COR_SOBREPOSICAO)
+
+        larg_sob = [12, 34, 12, 14, 14, 8, 38, 60]
+        for i, w in enumerate(larg_sob, start=1):
+            ws_sob.column_dimensions[get_column_letter(i)].width = w
+        ws_sob.freeze_panes = "A2"
 
     ws2 = wb.create_sheet("Resumo")
     titulo_resumo = f"Conferência de Frequência — {nome_orgao} ({mes_label})" if nome_orgao else f"Conferência de Frequência ({mes_label})"
@@ -108,13 +162,16 @@ def gerar_excel(retificacoes, caminho_saida, total_sec, total_sis, mes_label, no
     ws2.append(["Mês de referência", mes_label])
     ws2.append(["Registros extraídos (secretaria)", total_sec])
     ws2.append(["Registros extraídos (sistema)", total_sis])
-    ws2.append(["Total de retificações", len(retificacoes)])
+    ws2.append(["Total de divergências/retificações", len(ret_divergencias)])
+    ws2.append(["Servidores sem registro na frequência (a verificar)", len(ret_sem_registro)])
+    ws2.append(["Sobreposições de eventos detectadas", len(sobreposicoes)])
     ws2.append([])
     ws2.append(["Legenda de cores", ""])
-    ws2["A9"].font = Font(bold=True)
-    ws2.append(["Amarelo", "secretaria não tinha nada lançado nesse dia (lançar lá)"])
+    ws2["A11"].font = Font(bold=True)
+    ws2.append(["Amarelo", "secretaria não tinha esse servidor na folha (verificar desligamento)"])
     ws2.append(["Azul", "sistema não tem nada nesse dia (conferir se é pra lançar lá)"])
     ws2.append(["Laranja", "os dois têm algo lançado, mas de tipo diferente"])
+    ws2.append(["Lilás", "sobreposição de eventos na mesma data (conflito interno a verificar)"])
     ws2.column_dimensions["A"].width = 40
     ws2.column_dimensions["B"].width = 55
 
@@ -122,14 +179,41 @@ def gerar_excel(retificacoes, caminho_saida, total_sec, total_sis, mes_label, no
     wb.save(caminho_saida)
 
 
-def gerar_txt(retificacoes, caminho_saida):
-    linhas = [_linha_texto(r) for r in retificacoes]
+def gerar_txt(retificacoes, sobreposicoes, caminho_saida):
+    linhas = []
+    if sobreposicoes:
+        linhas.append("=== ATENÇÃO: SOBREPOSIÇÃO DE EVENTOS NA MESMA DATA ===")
+        for s in sobreposicoes:
+            dias_txt = (f"{s['data_inicio'].strftime('%d/%m/%Y')} a {s['data_fim'].strftime('%d/%m/%Y')}"
+                        if s["data_inicio"] != s["data_fim"] else s["data_inicio"].strftime("%d/%m/%Y"))
+            linhas.append(f"- {s['matricula']} - {s['nome']} - {dias_txt} ({s['dias']} dia{'s' if s['dias'] != 1 else ''}) - {s['origem']}: {s['eventos']}")
+        linhas.append("")
+
+    ret_divergencias = [r for r in retificacoes if r["tipo_secretaria"] != "SEM REGISTRO"]
+    ret_sem_registro = [r for r in retificacoes if r["tipo_secretaria"] == "SEM REGISTRO"]
+
+    if ret_divergencias:
+        linhas.append("=== RETIFICAÇÕES A REALIZAR ===")
+        for r in ret_divergencias:
+            linhas.append(f"- {_linha_texto(r)}")
+            if r.get("nota_responsabilidade"):
+                linhas.append(f"  [Responsabilidade: {r['nota_responsabilidade']}]")
+        linhas.append("")
+
+    if ret_sem_registro:
+        linhas.append("=== OCORRÊNCIAS SEM REGISTRO NA FREQUÊNCIA DA SECRETARIA (VERIFICAR POSSÍVEL DESLIGAMENTO) ===")
+        for r in ret_sem_registro:
+            linhas.append(f"- {_linha_texto(r)}")
+            if r.get("nota_responsabilidade"):
+                linhas.append(f"  [Responsabilidade: {r['nota_responsabilidade']}]")
+        linhas.append("")
+
     os.makedirs(os.path.dirname(caminho_saida), exist_ok=True)
     with open(caminho_saida, "w", encoding="utf-8") as f:
         f.write("\n".join(linhas) + "\n")
 
 
-def gerar_markdown(retificacoes, caminho_saida, mes_label, total_sec, total_sis, nome_orgao=""):
+def gerar_markdown(retificacoes, sobreposicoes, caminho_saida, mes_label, total_sec, total_sis, nome_orgao=""):
     linhas = []
     titulo = f"# Retificações de Frequência — {nome_orgao} ({mes_label})" if nome_orgao else f"# Retificações de Frequência ({mes_label})"
     linhas.append(titulo)
@@ -140,13 +224,51 @@ def gerar_markdown(retificacoes, caminho_saida, mes_label, total_sec, total_sis,
     linhas.append(f"- Mês de referência: {mes_label}")
     linhas.append(f"- Registros extraídos (secretaria): {total_sec}")
     linhas.append(f"- Registros extraídos (sistema): {total_sis}")
-    linhas.append(f"- **Total de retificações: {len(retificacoes)}**")
+
+    ret_divergencias = [r for r in retificacoes if r["tipo_secretaria"] != "SEM REGISTRO"]
+    ret_sem_registro = [r for r in retificacoes if r["tipo_secretaria"] == "SEM REGISTRO"]
+
+    linhas.append(f"- **Total de retificações: {len(ret_divergencias)}**")
+    if ret_sem_registro:
+        linhas.append(f"- **Servidores sem registro na frequência (a verificar): {len(ret_sem_registro)}**")
+    if sobreposicoes:
+        linhas.append(f"- **⚠️ Sobreposições de eventos detectadas: {len(sobreposicoes)}**")
     linhas.append("")
-    linhas.append("Favor retificar as seguintes frequências:")
-    linhas.append("")
-    for r in retificacoes:
-        linhas.append(f"- {_linha_texto(r)}")
-    linhas.append("")
+
+    if sobreposicoes:
+        linhas.append("## ⚠️ Sobreposição de Eventos na Mesma Data")
+        linhas.append("Foram identificados servidores com múltiplos registros para a mesma data (conflito no sistema ou secretaria):")
+        linhas.append("")
+        for s in sobreposicoes:
+            dias_txt = (f"{s['data_inicio'].strftime('%d/%m/%Y')} a {s['data_fim'].strftime('%d/%m/%Y')}"
+                        if s["data_inicio"] != s["data_fim"] else s["data_inicio"].strftime("%d/%m/%Y"))
+            linhas.append(f"- **{s['matricula']} - {s['nome']}**: {dias_txt} ({s['dias']} dia{'s' if s['dias'] != 1 else ''}) — *{s['origem']}*: **{s['eventos']}**")
+        linhas.append("")
+        linhas.append("> [!IMPORTANT]")
+        linhas.append("> **Regra de Responsabilidade em Conflitos Falta vs. Afastamento Médico**:")
+        linhas.append("> - **Faltas relatadas pela secretaria**: A secretaria deve retificar as frequências substituindo as faltas pelo afastamento médico.")
+        linhas.append("> - **Faltas registradas no sistema**: Caso constem faltas no sistema em datas cobertas por atestado médico, cabe ao RH/sistema retirá-las.")
+        linhas.append("")
+
+    if ret_divergencias:
+        linhas.append("## Retificações a Realizar")
+        linhas.append("Favor retificar as seguintes frequências:")
+        linhas.append("")
+        for r in ret_divergencias:
+            linhas.append(f"- {_linha_texto(r)}")
+            if r.get("nota_responsabilidade"):
+                linhas.append(f"  > **Responsabilidade**: {r['nota_responsabilidade']}")
+        linhas.append("")
+
+    if ret_sem_registro:
+        linhas.append("## Ocorrências sem Registro na Frequência da Secretaria")
+        linhas.append("Os seguintes servidores possuem lançamentos no sistema, mas **não constam** no relatório de frequência entregue pela secretaria (verificar se o servidor já está desligado/exonerado ou se houve omissão na lista):")
+        linhas.append("")
+        for r in ret_sem_registro:
+            linhas.append(f"- {_linha_texto(r)}")
+            if r.get("nota_responsabilidade"):
+                linhas.append(f"  > **Responsabilidade**: {r['nota_responsabilidade']}")
+        linhas.append("")
 
     os.makedirs(os.path.dirname(caminho_saida), exist_ok=True)
     with open(caminho_saida, "w", encoding="utf-8") as f:
@@ -193,27 +315,40 @@ def processar_par(caminho_secretaria, caminho_sistema, ano_mes=None):
     print(f"  -> {len(regs_sis)} registro(s) extraído(s)")
 
     # 4. Comparar dia a dia
-    retificacoes, (ano_ref, mes_ref) = comparar_por_dia(regs_sec, regs_sis, ano_mes=ano_mes)
+    retificacoes, sobreposicoes, (ano_ref, mes_ref) = comparar_por_dia(regs_sec, regs_sis, ano_mes=ano_mes)
     mes_label = f"{MESES_PT[mes_ref]}/{ano_ref}" if (ano_ref and mes_ref) else "mês não identificado"
     print(f"Mês de referência apurado: {mes_label}")
     print(f"Total de retificações encontradas: {len(retificacoes)}")
+    if sobreposicoes:
+        print(f"  -> [ATENÇÃO] {len(sobreposicoes)} caso(s) de sobreposição de eventos na mesma data detectado(s)!")
 
     # 5. Definir nomes de saída
     nome_saida = sanitizar_nome_arquivo(nome_orgao)
     caminho_xlsx = OUTPUT_DIR / f"conferencia_{nome_saida}.xlsx"
-    gerar_excel(retificacoes, str(caminho_xlsx), len(regs_sec), len(regs_sis), mes_label, nome_orgao=nome_orgao)
+    gerar_excel(retificacoes, sobreposicoes, str(caminho_xlsx), len(regs_sec), len(regs_sis), mes_label, nome_orgao=nome_orgao)
     print(f"[OK] Excel salvo em: {caminho_xlsx.relative_to(BASE_DIR)}")
 
-    if retificacoes:
+    if retificacoes or sobreposicoes:
         caminho_md = OUTPUT_DIR / f"retificacoes_{nome_saida}.md"
-        gerar_markdown(retificacoes, str(caminho_md), mes_label, len(regs_sec), len(regs_sis), nome_orgao=nome_orgao)
+        gerar_markdown(retificacoes, sobreposicoes, str(caminho_md), mes_label, len(regs_sec), len(regs_sis), nome_orgao=nome_orgao)
         print(f"[OK] Markdown salvo em: {caminho_md.relative_to(BASE_DIR)}")
 
         caminho_txt = OUTPUT_DIR / f"retificacoes_{nome_saida}.txt"
-        gerar_txt(retificacoes, str(caminho_txt))
+        gerar_txt(retificacoes, sobreposicoes, str(caminho_txt))
         print(f"[OK] Texto puro salvo em: {caminho_txt.relative_to(BASE_DIR)}")
     else:
         print("[INFO] Nenhuma retificação necessária (100% de conformidade!).")
+
+    # 6. Gerar relatório de monitoramento de atrasos (minutos perdidos) e faltas acumuladas
+    dados_monit = apurar_dados_monitoramento(regs_sec, regs_sis)
+    if dados_monit["atrasos"] or dados_monit["faltas"]:
+        caminho_monit_md = OUTPUT_DIR / f"monitoramento_{nome_saida}.md"
+        gerar_markdown_monitoramento(dados_monit, str(caminho_monit_md), mes_label, nome_orgao=nome_orgao)
+        print(f"[OK] Monitoramento Markdown: {caminho_monit_md.relative_to(BASE_DIR)}")
+
+        caminho_monit_xlsx = OUTPUT_DIR / f"monitoramento_{nome_saida}.xlsx"
+        gerar_excel_monitoramento(dados_monit, str(caminho_monit_xlsx), mes_label, nome_orgao=nome_orgao)
+        print(f"[OK] Monitoramento Excel:    {caminho_monit_xlsx.relative_to(BASE_DIR)}")
 
     return {
         "orgao": nome_orgao,
@@ -221,6 +356,8 @@ def processar_par(caminho_secretaria, caminho_sistema, ano_mes=None):
         "registros_sec": len(regs_sec),
         "registros_sis": len(regs_sis),
         "retificacoes": len(retificacoes),
+        "atrasos_minutos": dados_monit["resumo"]["total_minutos"],
+        "faltas_acumuladas": dados_monit["resumo"]["total_dias_faltas"],
     }
 
 
@@ -297,7 +434,13 @@ def main():
         print("RESUMO FINAL DO PROCESSAMENTO:")
         print("#" * 65)
         for r in resultados:
-            print(f"  * {r['orgao']} ({r['mes']}): {r['retificacoes']} retificação(ões)")
+            detalhe_extras = []
+            if r.get("atrasos_minutos"):
+                detalhe_extras.append(f"Atrasos: {r['atrasos_minutos']} min")
+            if r.get("faltas_acumuladas"):
+                detalhe_extras.append(f"Faltas: {r['faltas_acumuladas']} dia(s)")
+            extras_str = f" | {' | '.join(detalhe_extras)}" if detalhe_extras else ""
+            print(f"  * {r['orgao']} ({r['mes']}): {r['retificacoes']} retificação(ões){extras_str}")
         print("#" * 65 + "\n")
     else:
         print("Uso: python src/main.py <pdf_secretaria> <pdf_sistema> [--mes AAAA-MM]")
