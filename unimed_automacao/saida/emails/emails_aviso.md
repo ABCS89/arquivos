@@ -126,7 +126,7 @@ Aviso de Cancelamento do Plano de Saúde Unimed
 
 A/C MARIANA NAKANDAKARI
 
-Em virtude da verificação de pendências relacionadas ao pagamento do Plano de Saúde dos Servidores Públicos de Piracicaba, encaminhamos este comunicado para regularizar os valores devidos e restituir aos cofres públicos municipais a importância total de R$ 677,37, atualizada até a presente data, referente a mensalidades, coparticipações e encargos financeiros diariamente ajustados até a quitação dos débitos, conforme detalhado abaixo:
+Em virtude da verificação de pendências relacionadas ao pagamento do Plano de Saúde dos Servidores Públicos de Piracicaba, encaminhamos este comunicado para regularizar os valores devidos e restituir aos cofres públicos municipais a importância total de R$ 687,37, atualizada até a presente data, referente a mensalidades, coparticipações e encargos financeiros diariamente ajustados até a quitação dos débitos, conforme detalhado abaixo:
 
 <table width="100%" border="1" cellspacing="0" cellpadding="8" bordercolor="#b0b0b0" style="border-collapse: collapse; width: 100%; border: 1px solid #b0b0b0; font-family: Calibri, Arial, sans-serif; font-size: 13px; margin: 15px 0;">
   <thead>
@@ -150,8 +150,8 @@ Em virtude da verificação de pendências relacionadas ao pagamento do Plano de
       <td width="20%" align="center" style="border: 1px solid #b0b0b0; padding: 8px; text-align: center;">Jul/26</td>
       <td width="20%" align="center" style="border: 1px solid #b0b0b0; padding: 8px; text-align: center;">31/08/2026</td>
       <td width="20%" align="right" style="border: 1px solid #b0b0b0; padding: 8px; text-align: right;">R$ 333,49</td>
-      <td width="20%" align="right" style="border: 1px solid #b0b0b0; padding: 8px; text-align: right;">R$ 0,00</td>
-      <td width="20%" align="right" style="border: 1px solid #b0b0b0; padding: 8px; text-align: right; font-weight: bold;">R$ 333,49</td>
+      <td width="20%" align="right" style="border: 1px solid #b0b0b0; padding: 8px; text-align: right;">R$ 10,00</td>
+      <td width="20%" align="right" style="border: 1px solid #b0b0b0; padding: 8px; text-align: right; font-weight: bold;">R$ 343,49</td>
     </tr>
     <tr>
       <td width="20%" align="center" style="border: 1px solid #b0b0b0; padding: 8px; text-align: center;">Ago/26</td>
@@ -188,7 +188,7 @@ Aviso de Cancelamento do Plano de Saúde Unimed
 
 A/C SILVIA REGINA COELHO PRATES
 
-Em virtude da verificação de pendências relacionadas ao pagamento do Plano de Saúde dos Servidores Públicos de Piracicaba, encaminhamos este comunicado para regularizar os valores devidos e restituir aos cofres públicos municipais a importância total de R$ 666,98, atualizada até a presente data, referente a mensalidades, coparticipações e encargos financeiros diariamente ajustados até a quitação dos débitos, conforme detalhado abaixo:
+Em virtude da verificação de pendências relacionadas ao pagamento do Plano de Saúde dos Servidores Públicos de Piracicaba, encaminhamos este comunicado para regularizar os valores devidos e restituir aos cofres públicos municipais a importância total de R$ 676,98, atualizada até a presente data, referente a mensalidades, coparticipações e encargos financeiros diariamente ajustados até a quitação dos débitos, conforme detalhado abaixo:
 
 <table width="100%" border="1" cellspacing="0" cellpadding="8" bordercolor="#b0b0b0" style="border-collapse: collapse; width: 100%; border: 1px solid #b0b0b0; font-family: Calibri, Arial, sans-serif; font-size: 13px; margin: 15px 0;">
   <thead>
@@ -205,8 +205,8 @@ Em virtude da verificação de pendências relacionadas ao pagamento do Plano de
       <td width="20%" align="center" style="border: 1px solid #b0b0b0; padding: 8px; text-align: center;">Jul/26</td>
       <td width="20%" align="center" style="border: 1px solid #b0b0b0; padding: 8px; text-align: center;">31/08/2026</td>
       <td width="20%" align="right" style="border: 1px solid #b0b0b0; padding: 8px; text-align: right;">R$ 333,49</td>
-      <td width="20%" align="right" style="border: 1px solid #b0b0b0; padding: 8px; text-align: right;">R$ 0,00</td>
-      <td width="20%" align="right" style="border: 1px solid #b0b0b0; padding: 8px; text-align: right; font-weight: bold;">R$ 333,49</td>
+      <td width="20%" align="right" style="border: 1px solid #b0b0b0; padding: 8px; text-align: right;">R$ 10,00</td>
+      <td width="20%" align="right" style="border: 1px solid #b0b0b0; padding: 8px; text-align: right; font-weight: bold;">R$ 343,49</td>
     </tr>
     <tr>
       <td width="20%" align="center" style="border: 1px solid #b0b0b0; padding: 8px; text-align: center;">Ago/26</td>
