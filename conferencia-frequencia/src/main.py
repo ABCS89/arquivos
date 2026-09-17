@@ -40,6 +40,13 @@ from openpyxl.utils import get_column_letter
 BASE_DIR = Path(__file__).resolve().parent.parent
 INPUT_DIR = BASE_DIR / "input"
 OUTPUT_DIR = BASE_DIR / "output"
+OUTPUT_CONFERENCIA = OUTPUT_DIR / "conferencia"
+OUTPUT_RETIFICACOES = OUTPUT_DIR / "retificacoes"
+OUTPUT_MONITORAMENTO = OUTPUT_DIR / "monitoramento"
+
+# Garante que as pastas de saída existam
+for _d in (OUTPUT_CONFERENCIA, OUTPUT_RETIFICACOES, OUTPUT_MONITORAMENTO):
+    _d.mkdir(parents=True, exist_ok=True)
 
 COR_CABECALHO = "1F4E78"
 COR_SEM_REGISTRO_SECRETARIA = "FFF2CC"   # secretaria não tinha nada -> precisa lançar
@@ -324,16 +331,16 @@ def processar_par(caminho_secretaria, caminho_sistema, ano_mes=None):
 
     # 5. Definir nomes de saída
     nome_saida = sanitizar_nome_arquivo(nome_orgao)
-    caminho_xlsx = OUTPUT_DIR / f"conferencia_{nome_saida}.xlsx"
+    caminho_xlsx = OUTPUT_CONFERENCIA / f"conferencia_{nome_saida}.xlsx"
     gerar_excel(retificacoes, sobreposicoes, str(caminho_xlsx), len(regs_sec), len(regs_sis), mes_label, nome_orgao=nome_orgao)
     print(f"[OK] Excel salvo em: {caminho_xlsx.relative_to(BASE_DIR)}")
 
     if retificacoes or sobreposicoes:
-        caminho_md = OUTPUT_DIR / f"retificacoes_{nome_saida}.md"
+        caminho_md = OUTPUT_RETIFICACOES / f"retificacoes_{nome_saida}.md"
         gerar_markdown(retificacoes, sobreposicoes, str(caminho_md), mes_label, len(regs_sec), len(regs_sis), nome_orgao=nome_orgao)
         print(f"[OK] Markdown salvo em: {caminho_md.relative_to(BASE_DIR)}")
 
-        caminho_txt = OUTPUT_DIR / f"retificacoes_{nome_saida}.txt"
+        caminho_txt = OUTPUT_RETIFICACOES / f"retificacoes_{nome_saida}.txt"
         gerar_txt(retificacoes, sobreposicoes, str(caminho_txt))
         print(f"[OK] Texto puro salvo em: {caminho_txt.relative_to(BASE_DIR)}")
     else:
@@ -342,11 +349,11 @@ def processar_par(caminho_secretaria, caminho_sistema, ano_mes=None):
     # 6. Gerar relatório de monitoramento de atrasos (minutos perdidos) e faltas acumuladas
     dados_monit = apurar_dados_monitoramento(regs_sec, regs_sis)
     if dados_monit["atrasos"] or dados_monit["faltas"]:
-        caminho_monit_md = OUTPUT_DIR / f"monitoramento_{nome_saida}.md"
+        caminho_monit_md = OUTPUT_MONITORAMENTO / f"monitoramento_{nome_saida}.md"
         gerar_markdown_monitoramento(dados_monit, str(caminho_monit_md), mes_label, nome_orgao=nome_orgao)
         print(f"[OK] Monitoramento Markdown: {caminho_monit_md.relative_to(BASE_DIR)}")
 
-        caminho_monit_xlsx = OUTPUT_DIR / f"monitoramento_{nome_saida}.xlsx"
+        caminho_monit_xlsx = OUTPUT_MONITORAMENTO / f"monitoramento_{nome_saida}.xlsx"
         gerar_excel_monitoramento(dados_monit, str(caminho_monit_xlsx), mes_label, nome_orgao=nome_orgao)
         print(f"[OK] Monitoramento Excel:    {caminho_monit_xlsx.relative_to(BASE_DIR)}")
 

@@ -303,7 +303,16 @@ def comparar_por_dia(regs_secretaria, regs_sistema, ano_mes=None):
 
             divergente = (canons_sec != canons_sis)
 
-            if divergente:
+            # Caso especial: Aguardando retorno/perícia auxílio doença quando presente em AMBOS os arquivos
+            # Deve ser solicitada retificação para atualização da ocorrência junto ao SEMPEM
+            ambos_aguardando_retorno = False
+            if not divergente and canons_sec:
+                for c in canons_sec:
+                    if "aguardando retorno" in c or ("pericia" in c and "auxilio" in c):
+                        ambos_aguardando_retorno = True
+                        break
+
+            if divergente or ambos_aguardando_retorno:
                 tem_sob_sec = len(canons_sec) > 1
                 tem_sob_sis = len(canons_sis) > 1
                 tem_sob = tem_sob_sec or tem_sob_sis
@@ -325,6 +334,10 @@ def comparar_por_dia(regs_secretaria, regs_sistema, ano_mes=None):
                 # Quando na secretaria for Aguardando perícia sempem e no sistema estiver sem registro
                 if val_sec and "sempem" in _normalizar(val_sec) and not val_sis:
                     obs_partes.append("solicitar ao sempem")
+
+                # Quando Aguardando retorno/perícia auxílio doença estiver em ambos os arquivos
+                if ambos_aguardando_retorno:
+                    obs_partes.append("solicitar ao sempem atualização da ocorrencia")
 
                 obs = "; ".join(obs_partes)
                 par = (val_sec, val_sis, obs, tem_sob)
