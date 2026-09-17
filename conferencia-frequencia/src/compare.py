@@ -17,8 +17,15 @@ bate normalmente, mesmo que a duração total do evento (fora do mês) não
 bata com o que está na secretaria.
 """
 import unicodedata
+import re
 from datetime import date, timedelta
 from collections import Counter
+
+try:
+    from desligados import normalizar_matricula
+except ImportError:
+    def normalizar_matricula(m):
+        return re.sub(r"\D", "", str(m)).zfill(6) if m else ""
 
 # Tipos que representam "nada a registrar" e não entram na comparação
 TIPOS_IGNORADOS = {"frequencia normal"}
@@ -215,7 +222,7 @@ def detectar_sobreposicoes(mapa_dias, nomes, primeiro_dia, ultimo_dia_incl, orig
     return sobreposicoes
 
 
-def comparar_por_dia(regs_secretaria, regs_sistema, ano_mes=None):
+def comparar_por_dia(regs_secretaria, regs_sistema, ano_mes=None, desligados=None):
     """Retorna (retificacoes, sobreposicoes, (ano_ref, mes_ref)).
 
     Cada item de `retificacoes`:
@@ -248,6 +255,20 @@ def comparar_por_dia(regs_secretaria, regs_sistema, ano_mes=None):
     sobreposicoes_sec = detectar_sobreposicoes(mapa_sec, nomes, primeiro_dia, ultimo_dia_incl, origem="Secretaria")
     sobreposicoes = sobreposicoes_sis + sobreposicoes_sec
 
+    # Mapeia servidores com minutos perdidos no mês em cada lado
+    mats_minutos_sec = set()
+    for (mat, d), tipos in mapa_sec.items():
+        if any(_tipo_canonico(t) == "minutos perdidos" for t in tipos):
+            mats_minutos_sec.add(mat)
+
+    mats_minutos_sis = set()
+    for (mat, d), tipos in mapa_sis.items():
+        if any(_tipo_canonico(t) == "minutos perdidos" for t in tipos):
+            mats_minutos_sis.add(mat)
+
+    # Servidores com minutos perdidos em ambos os relatórios no mês
+    mats_minutos_em_ambos = mats_minutos_sec & mats_minutos_sis
+
     retificacoes = []
     for matricula in sorted(nomes):
         nome = nomes[matricula]
@@ -266,6 +287,22 @@ def comparar_por_dia(regs_secretaria, regs_sistema, ano_mes=None):
             else:
                 tipo_sec = ROTULO_SEM_REGISTRO_SECRETARIA
 
+            mat_norm = normalizar_matricula(matricula)
+            info_desl = desligados.get(mat_norm) if desligados else None
+
+            # 1. Regra solicitada: Quando a ocorrência NÃO estiver no arquivo do sistema
+            # (ou seja, rotulo_sis é vazio / sem registro em sistema) e o servidor for desligado,
+            # IGNORA O DESLIGADO!
+            if not rotulo_sis and info_desl:
+                pendente = None
+                return
+
+            # 2. Quando o servidor tiver lançamentos no sistema, mas NÃO na secretaria (SEM REGISTRO):
+            # Se for confirmado desligado, sinaliza a confirmação do desligamento
+            if not rotulo_sec and matricula not in nomes_sec and info_desl:
+                dt_str = f" em {info_desl['data_demissao']}" if info_desl.get("data_demissao") else ""
+                obs = f"Servidor desligado{dt_str} (confirmado em Controle de Desligamentos)"
+
             retificacoes.append({
                 "matricula": matricula,
                 "nome": nome,
@@ -276,6 +313,8 @@ def comparar_por_dia(regs_secretaria, regs_sistema, ano_mes=None):
                 "tipo_sistema": rotulo_sis or ROTULO_SEM_REGISTRO_SISTEMA,
                 "observacao": obs,
                 "sobreposicao": sob,
+                "desligado": bool(info_desl),
+                "data_demissao": info_desl.get("data_demissao") if info_desl else None,
             })
             pendente = None
 
@@ -302,6 +341,15 @@ def comparar_por_dia(regs_secretaria, regs_sistema, ano_mes=None):
                     tipos_sis_unicos.append(t)
 
             divergente = (canons_sec != canons_sis)
+
+            # Ajuste de Minutos Perdidos em dias diferentes:
+            # Minutos perdidos é apurado no acumulado do mês. Se o servidor possui minutos
+            # perdidos registrados em AMBOS os relatórios no mês, o lançamento em datas
+            # diferentes com frequência normal no dia oposto NÃO deve ser considerado divergência.
+            if divergente and matricula in mats_minutos_em_ambos:
+                if (canons_sec == {"minutos perdidos"} and not canons_sis) or \
+                   (canons_sis == {"minutos perdidos"} and not canons_sec):
+                    divergente = False
 
             # Caso especial: Aguardando retorno/perícia auxílio doença quando presente em AMBOS os arquivos
             # Deve ser solicitada retificação para atualização da ocorrência junto ao SEMPEM

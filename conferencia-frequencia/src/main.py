@@ -26,6 +26,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from extract_secretaria import extrair as extrair_secretaria, extrair_cabecalho
 from extract_sistema import extrair as extrair_sistema
 from compare import comparar_por_dia
+from desligados import localizar_e_carregar_desligados
 from monitoring import (
     apurar_dados_monitoramento,
     gerar_markdown_monitoramento,
@@ -282,10 +283,13 @@ def gerar_markdown(retificacoes, sobreposicoes, caminho_saida, mes_label, total_
         f.write("\n".join(linhas))
 
 
-def processar_par(caminho_secretaria, caminho_sistema, ano_mes=None):
+def processar_par(caminho_secretaria, caminho_sistema, ano_mes=None, desligados=None):
     """Processa um par de relatórios (secretaria + sistema) e gera os arquivos em output/."""
     caminho_secretaria = Path(caminho_secretaria)
     caminho_sistema = Path(caminho_sistema)
+
+    if desligados is None:
+        desligados, _ = localizar_e_carregar_desligados(INPUT_DIR)
 
     print("\n" + "=" * 65)
     print(f"PROCESSANDO CONFERÊNCIA:")
@@ -322,7 +326,9 @@ def processar_par(caminho_secretaria, caminho_sistema, ano_mes=None):
     print(f"  -> {len(regs_sis)} registro(s) extraído(s)")
 
     # 4. Comparar dia a dia
-    retificacoes, sobreposicoes, (ano_ref, mes_ref) = comparar_por_dia(regs_sec, regs_sis, ano_mes=ano_mes)
+    retificacoes, sobreposicoes, (ano_ref, mes_ref) = comparar_por_dia(
+        regs_sec, regs_sis, ano_mes=ano_mes, desligados=desligados
+    )
     mes_label = f"{MESES_PT[mes_ref]}/{ano_ref}" if (ano_ref and mes_ref) else "mês não identificado"
     print(f"Mês de referência apurado: {mes_label}")
     print(f"Total de retificações encontradas: {len(retificacoes)}")
@@ -414,9 +420,11 @@ def main():
         ano_str, mes_str = valor.split("-")
         ano_mes = (int(ano_str), int(mes_str))
 
+    desligados, arq_desligados = localizar_e_carregar_desligados(INPUT_DIR)
+
     if len(args) == 2:
         caminho_secretaria, caminho_sistema = args
-        processar_par(caminho_secretaria, caminho_sistema, ano_mes=ano_mes)
+        processar_par(caminho_secretaria, caminho_sistema, ano_mes=ano_mes, desligados=desligados)
     elif len(args) == 0:
         pares = descobrir_pares()
         if not pares:
@@ -430,11 +438,13 @@ def main():
         print("\n" + "#" * 65)
         print(f"  CONFERÊNCIA DE FREQUÊNCIA — PROCESSAMENTO EM LOTE")
         print(f"  Foram encontrados {len(pares)} pares de relatórios para conferência.")
+        if desligados:
+            print(f"  Controle de Desligamentos: {len(desligados)} registros ativos ({arq_desligados})")
         print("#" * 65)
 
         resultados = []
         for sec, sis in pares:
-            res = processar_par(sec, sis, ano_mes=ano_mes)
+            res = processar_par(sec, sis, ano_mes=ano_mes, desligados=desligados)
             resultados.append(res)
 
         print("\n" + "#" * 65)
