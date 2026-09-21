@@ -33,7 +33,7 @@ def normalizar_linha_ocr(linha):
     return linha
 
 
-def extrair_linhas_pagina_ocr(page, scale=2.5):
+def extrair_linhas_pagina_ocr(page, scale=3.0):
     """
     Renderiza uma página do pdfium e extrai suas linhas de texto via OCR,
     ordenando as palavras horizontalmente por linha e descartando a barra
@@ -46,8 +46,9 @@ def extrair_linhas_pagina_ocr(page, scale=2.5):
     res = winocr.recognize_pil_sync(img, "pt-BR")
     
     words = []
-    # 0.88 descarta a barra lateral vertical de assinaturas do SemPapel
-    limite_x = largura * 0.88
+    # 0.95 preserva a coluna de quantidades à direita (~0.92-0.94)
+    # e descarta a barra lateral vertical de assinaturas do SemPapel (>= 0.96)
+    limite_x = largura * 0.95
     
     for line in res.get("lines", []):
         for w in line.get("words", []):
@@ -55,8 +56,13 @@ def extrair_linhas_pagina_ocr(page, scale=2.5):
             x = rect.get("x", 0)
             y = rect.get("y", 0)
             h = rect.get("height", 14)
+            text = w.get("text", "")
             if x < limite_x:
-                words.append((y, x, h, w.get("text", "")))
+                # Se estiver próximo da margem direita (> 0.93), só inclui se contiver dígitos
+                # (preserva quantidades como '15,0', '30,0', '884,0' e descarta letras de assinatura)
+                if x > largura * 0.93 and not any(c.isdigit() for c in text):
+                    continue
+                words.append((y, x, h, text))
                 
     if not words:
         return []
@@ -92,7 +98,7 @@ def extrair_linhas_pagina_ocr(page, scale=2.5):
     return resultado
 
 
-def extrair_texto_pdf_ocr(caminho_pdf, scale=2.5):
+def extrair_texto_pdf_ocr(caminho_pdf, scale=3.0):
     """
     Abre o PDF com pdfium e extrai todas as linhas de texto página a página via OCR.
     Retorna uma lista de strings (uma por página, com quebras de linha \\n).

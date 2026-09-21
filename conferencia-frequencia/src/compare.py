@@ -379,13 +379,19 @@ def comparar_por_dia(regs_secretaria, regs_sistema, ano_mes=None, desligados=Non
                     val_sec = f"{val_sec} [SOBREPOSIÇÃO]"
                     obs_partes.append(f"Sobreposição na secretaria: {' + '.join(tipos_sec_unicos)}")
 
-                # Quando na secretaria for Aguardando perícia sempem e no sistema estiver sem registro
+                # 1. Quando na secretaria for Aguardando perícia sempem e no sistema estiver sem registro
                 if val_sec and "sempem" in _normalizar(val_sec) and not val_sis:
                     obs_partes.append("solicitar ao sempem")
 
-                # Quando Aguardando retorno/perícia auxílio doença estiver em ambos os arquivos
-                if ambos_aguardando_retorno:
-                    obs_partes.append("solicitar ao sempem atualização da ocorrencia")
+                # 2. Quando constar no Sistema como Aguardando perícia / retorno
+                # (esteja em ambos os arquivos ou com outra ocorrência na secretaria)
+                sis_eh_aguardando_pericia = val_sis and any(
+                    "aguardando" in c and ("pericia" in c or "retorno" in c or "sempem" in c)
+                    for c in canons_sis
+                )
+                if ambos_aguardando_retorno or sis_eh_aguardando_pericia:
+                    if "solicitar ao sempem atualização da ocorrencia" not in obs_partes:
+                        obs_partes.append("solicitar ao sempem atualização da ocorrencia")
 
                 obs = "; ".join(obs_partes)
                 par = (val_sec, val_sis, obs, tem_sob)

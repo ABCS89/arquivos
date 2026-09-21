@@ -31,8 +31,23 @@ except ImportError:
     )
 
 MATRICULA_RE = re.compile(r"^(\d{2})[\.,](\d{3})[-_ ](\d\b)")
-DATE_QTY_TAIL_RE = re.compile(r"(\d{2}/\d{2}/\d{4})\s+([\d\.,]+)\s*$")
-DATE_ONLY_TAIL_RE = re.compile(r"(\d{2}/\d{2}/\d{4})\s*$")
+DATE_QTY_TAIL_RE = re.compile(r"(\d{2}/\d{2}/\d{2,4})\s+([\d\.,]+)\s*$")
+DATE_ONLY_TAIL_RE = re.compile(r"(\d{2}/\d{2}/\d{2,4})\s*$")
+
+
+def _normalizar_data_str(data_str, ano_base=2026):
+    """Corrige datas com anos incompletos de OCR (ex.: '03/08/202' -> '03/08/2026', '03/08/26' -> '03/08/2026')."""
+    if not data_str:
+        return None
+    partes = data_str.split("/")
+    if len(partes) == 3:
+        d, m, y = partes
+        if len(y) == 2:
+            y = f"20{y}"
+        elif len(y) == 3 and y.startswith("20"):
+            y = f"{y}{str(ano_base)[-1]}"
+        return f"{d.zfill(2)}/{m.zfill(2)}/{y}"
+    return data_str
 
 # linhas de cabeçalho/rodapé/assinatura a ignorar
 IGNORAR_SUBSTRINGS = [
@@ -187,16 +202,17 @@ def _processar_linhas(linhas):
                 corpo = linha[: m_data_only.start()].strip()
                 qtde = 1.0
 
+        data = _normalizar_data_str(data)
+
         m_mat = MATRICULA_RE.match(linha)
         if m_mat:
             # Normaliza para o formato padrão XX.XXX-X
             matricula_atual = f"{m_mat.group(1)}.{m_mat.group(2)}-{m_mat.group(3)}"
             pos_fim = m_mat.end()
-            resto = linha[pos_fim:].strip()
-            if m_data_qty:
+            if m_data_qty or m_data_only:
                 resto_corpo = corpo[pos_fim:].strip()
             else:
-                resto_corpo = resto
+                resto_corpo = linha[pos_fim:].strip()
             nome_atual, ocorrencia = _separar_nome_ocorrencia(resto_corpo)
             registros.append({
                 "matricula": matricula_atual,
@@ -205,7 +221,7 @@ def _processar_linhas(linhas):
                 "data": data,
                 "qtde_dias": qtde,
             })
-        elif m_data_qty and corpo and corpo[:1].isalpha() and corpo[:1].isupper():
+        elif (m_data_qty or m_data_only) and corpo and corpo[:1].isalpha() and corpo[:1].isupper():
             # linha de continuação (ocorrência extra do último funcionário)
             if matricula_atual is None:
                 nao_reconhecidas.append(linha)

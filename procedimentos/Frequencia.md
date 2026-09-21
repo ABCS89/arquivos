@@ -44,5 +44,5 @@
         
 -----
 
-Favor retificar as seguintes frequências:
+Favor enviar memorando de retificação das seguintes frequências:
 

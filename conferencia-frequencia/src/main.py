@@ -202,6 +202,8 @@ def gerar_txt(retificacoes, sobreposicoes, caminho_saida):
 
     if ret_divergencias:
         linhas.append("=== RETIFICAÇÕES A REALIZAR ===")
+        linhas.append("Favor enviar memorando de retificação das seguintes frequências:")
+        linhas.append("")
         for r in ret_divergencias:
             linhas.append(f"- {_linha_texto(r)}")
             if r.get("nota_responsabilidade"):
@@ -260,7 +262,7 @@ def gerar_markdown(retificacoes, sobreposicoes, caminho_saida, mes_label, total_
 
     if ret_divergencias:
         linhas.append("## Retificações a Realizar")
-        linhas.append("Favor retificar as seguintes frequências:")
+        linhas.append("Favor enviar memorando de retificação das seguintes frequências:")
         linhas.append("")
         for r in ret_divergencias:
             linhas.append(f"- {_linha_texto(r)}")
@@ -341,15 +343,21 @@ def processar_par(caminho_secretaria, caminho_sistema, ano_mes=None, desligados=
     gerar_excel(retificacoes, sobreposicoes, str(caminho_xlsx), len(regs_sec), len(regs_sis), mes_label, nome_orgao=nome_orgao)
     print(f"[OK] Excel salvo em: {caminho_xlsx.relative_to(BASE_DIR)}")
 
+    caminho_md = OUTPUT_RETIFICACOES / f"retificacoes_{nome_saida}.md"
+    caminho_txt = OUTPUT_RETIFICACOES / f"retificacoes_{nome_saida}.txt"
+
     if retificacoes or sobreposicoes:
-        caminho_md = OUTPUT_RETIFICACOES / f"retificacoes_{nome_saida}.md"
         gerar_markdown(retificacoes, sobreposicoes, str(caminho_md), mes_label, len(regs_sec), len(regs_sis), nome_orgao=nome_orgao)
         print(f"[OK] Markdown salvo em: {caminho_md.relative_to(BASE_DIR)}")
 
-        caminho_txt = OUTPUT_RETIFICACOES / f"retificacoes_{nome_saida}.txt"
         gerar_txt(retificacoes, sobreposicoes, str(caminho_txt))
         print(f"[OK] Texto puro salvo em: {caminho_txt.relative_to(BASE_DIR)}")
     else:
+        # Remove relatórios antigos se a secretaria atingiu 100% de conformidade
+        if caminho_md.exists():
+            caminho_md.unlink()
+        if caminho_txt.exists():
+            caminho_txt.unlink()
         print("[INFO] Nenhuma retificação necessária (100% de conformidade!).")
 
     # 6. Gerar relatório de monitoramento de atrasos (minutos perdidos) e faltas acumuladas
