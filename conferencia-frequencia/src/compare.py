@@ -383,6 +383,11 @@ def comparar_por_dia(regs_secretaria, regs_sistema, ano_mes=None, desligados=Non
                 if val_sec and "sempem" in _normalizar(val_sec) and not val_sis:
                     obs_partes.append("solicitar ao sempem")
 
+                # Quando na secretaria for Minutos perdidos ou Falta e no sistema estiver sem registro
+                if val_sec and _tipo_canonico(val_sec) in ("minutos perdidos", "falta") and not val_sis:
+                    if "inserir no sistema" not in obs_partes:
+                        obs_partes.append("inserir no sistema")
+
                 # 2. Quando constar no Sistema como Aguardando perícia / retorno
                 # (esteja em ambos os arquivos ou com outra ocorrência na secretaria)
                 sis_eh_aguardando_pericia = val_sis and any(

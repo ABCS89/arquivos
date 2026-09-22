@@ -32,6 +32,13 @@ from monitoring import (
     gerar_markdown_monitoramento,
     gerar_excel_monitoramento,
 )
+from memorando import (
+    localizar_memorando,
+    extrair_texto_completo_memorando,
+    extrair_itens_memorando,
+    conferir_memorando_com_solicitacoes,
+    gerar_secao_memorando_markdown,
+)
 
 from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill, Alignment
@@ -91,6 +98,28 @@ def _linha_texto(r):
             f'dia{"s" if r["dias"] != 1 else ""} - {r["tipo_secretaria"]} --> {r["tipo_sistema"]}{obs}')
 
 
+def _eh_lancamento_somente_sec(r):
+    """Retorna True se for registro de minutos perdidos ou falta informado pela secretaria sem lançamento no sistema."""
+    tipo_sec_norm = r["tipo_secretaria"].lower()
+    eh_alvo = ("minuto" in tipo_sec_norm or "falta" in tipo_sec_norm)
+    return eh_alvo and r["tipo_sistema"] == "sem registro em sistema"
+
+
+_eh_minutos_somente_sec = _eh_lancamento_somente_sec
+
+
+def _eh_divergencia_secretaria(r):
+    """Retorna True se for uma divergência que a secretaria precisa retificar via memorando.
+    Registros de 'SEM REGISTRO' na secretaria ou de minutos perdidos/faltas que a secretaria já informou
+    não são retificações a cargo da secretaria (são tratados internamente/inseridos no sistema).
+    """
+    if r["tipo_secretaria"] == "SEM REGISTRO":
+        return False
+    if _eh_lancamento_somente_sec(r):
+        return False
+    return True
+
+
 def gerar_excel(retificacoes, sobreposicoes, caminho_saida, total_sec, total_sis, mes_label, nome_orgao=""):
     wb = Workbook()
 
@@ -104,16 +133,19 @@ def gerar_excel(retificacoes, sobreposicoes, caminho_saida, total_sec, total_sis
         cel.fill = PatternFill("solid", fgColor=COR_CABECALHO)
         cel.alignment = Alignment(horizontal="center")
 
-    ret_divergencias = [r for r in retificacoes if r["tipo_secretaria"] != "SEM REGISTRO"]
-    ret_sem_registro = [r for r in retificacoes if r["tipo_secretaria"] == "SEM REGISTRO"]
+    ret_divergencias = [r for r in retificacoes if _eh_divergencia_secretaria(r)]
+    ret_sem_registro = [r for r in retificacoes if not _eh_divergencia_secretaria(r)]
 
-    # Ordena colocando divergências primeiro, depois servidores sem registro na secretaria
+    # Ordena colocando divergências primeiro, depois servidores sem registro na secretaria / a inserir no sistema
     ret_ordenadas = ret_divergencias + ret_sem_registro
 
     for r in ret_ordenadas:
         obs_texto = r.get("observacao", "")
         if r["tipo_secretaria"] == "SEM REGISTRO" and not obs_texto:
             obs_texto = "Sem registro na secretaria (verificar possível desligamento/situação funcional)"
+        elif _eh_lancamento_somente_sec(r) and not obs_texto:
+            tipo_label = "Falta informada" if "falta" in r["tipo_secretaria"].lower() else "Minutos perdidos informados"
+            obs_texto = f"{tipo_label} pela secretaria (inserir no sistema)"
 
         if r.get("instrucao_direta") and obs_texto:
             obs_col = f"{r['instrucao_direta'].capitalize()} | {obs_texto}"
@@ -170,8 +202,8 @@ def gerar_excel(retificacoes, sobreposicoes, caminho_saida, total_sec, total_sis
     ws2.append(["Mês de referência", mes_label])
     ws2.append(["Registros extraídos (secretaria)", total_sec])
     ws2.append(["Registros extraídos (sistema)", total_sis])
-    ws2.append(["Total de divergências/retificações", len(ret_divergencias)])
-    ws2.append(["Servidores sem registro na frequência (a verificar)", len(ret_sem_registro)])
+    ws2.append(["Total de retificações (a cargo da secretaria)", len(ret_divergencias)])
+    ws2.append(["Servidores sem registro na frequência / a inserir no sistema", len(ret_sem_registro)])
     ws2.append(["Sobreposições de eventos detectadas", len(sobreposicoes)])
     ws2.append([])
     ws2.append(["Legenda de cores", ""])
@@ -197,8 +229,8 @@ def gerar_txt(retificacoes, sobreposicoes, caminho_saida):
             linhas.append(f"- {s['matricula']} - {s['nome']} - {dias_txt} ({s['dias']} dia{'s' if s['dias'] != 1 else ''}) - {s['origem']}: {s['eventos']}")
         linhas.append("")
 
-    ret_divergencias = [r for r in retificacoes if r["tipo_secretaria"] != "SEM REGISTRO"]
-    ret_sem_registro = [r for r in retificacoes if r["tipo_secretaria"] == "SEM REGISTRO"]
+    ret_divergencias = [r for r in retificacoes if _eh_divergencia_secretaria(r)]
+    ret_sem_registro = [r for r in retificacoes if not _eh_divergencia_secretaria(r)]
 
     if ret_divergencias:
         linhas.append("=== RETIFICAÇÕES A REALIZAR ===")
@@ -211,7 +243,7 @@ def gerar_txt(retificacoes, sobreposicoes, caminho_saida):
         linhas.append("")
 
     if ret_sem_registro:
-        linhas.append("=== OCORRÊNCIAS SEM REGISTRO NA FREQUÊNCIA DA SECRETARIA (VERIFICAR POSSÍVEL DESLIGAMENTO) ===")
+        linhas.append("=== OCORRÊNCIAS SEM REGISTRO NA FREQUÊNCIA DA SECRETARIA (A VERIFICAR / INSERIR NO SISTEMA) ===")
         for r in ret_sem_registro:
             linhas.append(f"- {_linha_texto(r)}")
             if r.get("nota_responsabilidade"):
@@ -223,7 +255,7 @@ def gerar_txt(retificacoes, sobreposicoes, caminho_saida):
         f.write("\n".join(linhas) + "\n")
 
 
-def gerar_markdown(retificacoes, sobreposicoes, caminho_saida, mes_label, total_sec, total_sis, nome_orgao=""):
+def gerar_markdown(retificacoes, sobreposicoes, caminho_saida, mes_label, total_sec, total_sis, nome_orgao="", secao_memorando=None):
     linhas = []
     titulo = f"# Retificações de Frequência — {nome_orgao} ({mes_label})" if nome_orgao else f"# Retificações de Frequência ({mes_label})"
     linhas.append(titulo)
@@ -235,12 +267,14 @@ def gerar_markdown(retificacoes, sobreposicoes, caminho_saida, mes_label, total_
     linhas.append(f"- Registros extraídos (secretaria): {total_sec}")
     linhas.append(f"- Registros extraídos (sistema): {total_sis}")
 
-    ret_divergencias = [r for r in retificacoes if r["tipo_secretaria"] != "SEM REGISTRO"]
-    ret_sem_registro = [r for r in retificacoes if r["tipo_secretaria"] == "SEM REGISTRO"]
+    ret_divergencias = [r for r in retificacoes if _eh_divergencia_secretaria(r)]
+    ret_sem_registro = [r for r in retificacoes if not _eh_divergencia_secretaria(r)]
 
     linhas.append(f"- **Total de retificações: {len(ret_divergencias)}**")
     if ret_sem_registro:
-        linhas.append(f"- **Servidores sem registro na frequência (a verificar): {len(ret_sem_registro)}**")
+        tem_inserir = any(_eh_lancamento_somente_sec(r) for r in ret_sem_registro)
+        rotulo_sem_reg = "Servidores sem registro na frequência / a inserir no sistema" if tem_inserir else "Servidores sem registro na frequência (a verificar)"
+        linhas.append(f"- **{rotulo_sem_reg}: {len(ret_sem_registro)}**")
     if sobreposicoes:
         linhas.append(f"- **⚠️ Sobreposições de eventos detectadas: {len(sobreposicoes)}**")
     linhas.append("")
@@ -269,10 +303,22 @@ def gerar_markdown(retificacoes, sobreposicoes, caminho_saida, mes_label, total_
             if r.get("nota_responsabilidade"):
                 linhas.append(f"  > **Responsabilidade**: {r['nota_responsabilidade']}")
         linhas.append("")
+    elif secao_memorando:
+        linhas.append("## Retificações a Realizar")
+        linhas.append("*(Nenhuma retificação pendente identificada entre o relatório da secretaria e o sistema)*")
+        linhas.append("")
 
     if ret_sem_registro:
         linhas.append("## Ocorrências sem Registro na Frequência da Secretaria")
-        linhas.append("Os seguintes servidores possuem lançamentos no sistema, mas **não constam** no relatório de frequência entregue pela secretaria (verificar se o servidor já está desligado/exonerado ou se houve omissão na lista):")
+        tem_sem_freq = any(r["tipo_secretaria"] == "SEM REGISTRO" for r in ret_sem_registro)
+        tem_inserir = any(_eh_lancamento_somente_sec(r) for r in ret_sem_registro)
+
+        if tem_sem_freq and tem_inserir:
+            linhas.append("Os seguintes servidores possuem lançamentos no sistema que **não constam** no relatório da secretaria (verificar se o servidor já está desligado/exonerado ou se houve omissão na lista) ou ocorrências informadas pela secretaria (faltas / minutos perdidos) que **devem ser inseridas no sistema**:")
+        elif tem_inserir:
+            linhas.append("Os seguintes servidores possuem ocorrências informadas pela secretaria (faltas / minutos perdidos) sem lançamento no sistema (ocorrências a serem inseridas no sistema):")
+        else:
+            linhas.append("Os seguintes servidores possuem lançamentos no sistema, mas **não constam** no relatório de frequência entregue pela secretaria (verificar se o servidor já está desligado/exonerado ou se houve omissão na lista):")
         linhas.append("")
         for r in ret_sem_registro:
             linhas.append(f"- {_linha_texto(r)}")
@@ -280,9 +326,13 @@ def gerar_markdown(retificacoes, sobreposicoes, caminho_saida, mes_label, total_
                 linhas.append(f"  > **Responsabilidade**: {r['nota_responsabilidade']}")
         linhas.append("")
 
+    if secao_memorando:
+        linhas.append(secao_memorando)
+        linhas.append("")
+
     os.makedirs(os.path.dirname(caminho_saida), exist_ok=True)
     with open(caminho_saida, "w", encoding="utf-8") as f:
-        f.write("\n".join(linhas))
+        f.write("\n".join(linhas).rstrip() + "\n")
 
 
 def processar_par(caminho_secretaria, caminho_sistema, ano_mes=None, desligados=None):
@@ -337,7 +387,33 @@ def processar_par(caminho_secretaria, caminho_sistema, ano_mes=None, desligados=
     if sobreposicoes:
         print(f"  -> [ATENÇÃO] {len(sobreposicoes)} caso(s) de sobreposição de eventos na mesma data detectado(s)!")
 
-    # 5. Definir nomes de saída
+    # 5. Localizar e conferir memorando de retificação (se houver)
+    cod_busca = codigo_sec
+    if not cod_busca:
+        m_arq = re.match(r"^(\d{3})\b", caminho_secretaria.stem)
+        if m_arq:
+            cod_busca = m_arq.group(1)
+
+    secao_memo = None
+    if cod_busca:
+        arq_memo = localizar_memorando(cod_busca, INPUT_DIR)
+        if arq_memo:
+            print(f"\n[MEMORANDO] Localizado memorando de retificação: {arq_memo.name}")
+            try:
+                texto_memo = extrair_texto_completo_memorando(arq_memo)
+                dados_memo = extrair_itens_memorando(texto_memo)
+                res_conf = conferir_memorando_com_solicitacoes(dados_memo, retificacoes)
+                secao_memo = gerar_secao_memorando_markdown(res_conf, dados_memo, arq_memo.name)
+                print(f"  -> Itens lidos no memorando: {len(dados_memo['itens'])}")
+                print(f"  -> Atendidas/Regularizadas: {len(res_conf['atendidas'])}")
+                if res_conf['divergencias_memo']:
+                    print(f"  -> Inconsistências no documento: {len(res_conf['divergencias_memo'])}")
+                qtd_pend = len([p for p in res_conf['pendentes_restantes'] if _eh_divergencia_secretaria(p)])
+                print(f"  -> Pendências restantes: {qtd_pend}")
+            except Exception as err:
+                print(f"  -> [AVISO] Falha ao processar memorando {arq_memo.name}: {err}")
+
+    # 6. Definir nomes de saída
     nome_saida = sanitizar_nome_arquivo(nome_orgao)
     caminho_xlsx = OUTPUT_CONFERENCIA / f"conferencia_{nome_saida}.xlsx"
     gerar_excel(retificacoes, sobreposicoes, str(caminho_xlsx), len(regs_sec), len(regs_sis), mes_label, nome_orgao=nome_orgao)
@@ -346,8 +422,8 @@ def processar_par(caminho_secretaria, caminho_sistema, ano_mes=None, desligados=
     caminho_md = OUTPUT_RETIFICACOES / f"retificacoes_{nome_saida}.md"
     caminho_txt = OUTPUT_RETIFICACOES / f"retificacoes_{nome_saida}.txt"
 
-    if retificacoes or sobreposicoes:
-        gerar_markdown(retificacoes, sobreposicoes, str(caminho_md), mes_label, len(regs_sec), len(regs_sis), nome_orgao=nome_orgao)
+    if retificacoes or sobreposicoes or secao_memo:
+        gerar_markdown(retificacoes, sobreposicoes, str(caminho_md), mes_label, len(regs_sec), len(regs_sis), nome_orgao=nome_orgao, secao_memorando=secao_memo)
         print(f"[OK] Markdown salvo em: {caminho_md.relative_to(BASE_DIR)}")
 
         gerar_txt(retificacoes, sobreposicoes, str(caminho_txt))
