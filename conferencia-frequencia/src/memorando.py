@@ -36,10 +36,10 @@ def _parse_data(txt):
         return None
 
 
-def localizar_memorando(codigo_sec, input_dir):
-    """Localiza arquivo de memorando de retificação correspondente ao código da secretaria em input_dir."""
-    input_dir = Path(input_dir)
-    if not input_dir.exists():
+def localizar_memorando(codigo_sec, contexto_dir):
+    """Localiza arquivo de memorando de retificação correspondente ao código da secretaria."""
+    contexto_dir = Path(contexto_dir)
+    if not contexto_dir.exists():
         return None
 
     padroes = [
@@ -48,13 +48,19 @@ def localizar_memorando(codigo_sec, input_dir):
         f"{codigo_sec}*memo*.pdf",
     ]
 
-    # Procura na raiz de input e em subpastas possíveis (ex: input/memorandos)
-    pastas = [input_dir]
-    for sub in input_dir.iterdir():
+    pastas = [contexto_dir]
+    if contexto_dir.name != "input" and (contexto_dir.parent / "input").exists():
+        pastas.append(contexto_dir.parent / "input")
+    elif contexto_dir.parent.exists() and contexto_dir.parent.name == "input":
+        pastas.append(contexto_dir.parent)
+
+    for sub in contexto_dir.iterdir():
         if sub.is_dir() and sub.name not in ("secretaria", "sistema"):
             pastas.append(sub)
 
     for p in pastas:
+        if not p.is_dir():
+            continue
         for padrao in padroes:
             encontrados = list(p.glob(padrao))
             if encontrados:

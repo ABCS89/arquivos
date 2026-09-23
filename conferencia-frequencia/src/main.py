@@ -48,13 +48,7 @@ from openpyxl.utils import get_column_letter
 BASE_DIR = Path(__file__).resolve().parent.parent
 INPUT_DIR = BASE_DIR / "input"
 OUTPUT_DIR = BASE_DIR / "output"
-OUTPUT_CONFERENCIA = OUTPUT_DIR / "conferencia"
-OUTPUT_RETIFICACOES = OUTPUT_DIR / "retificacoes"
-OUTPUT_MONITORAMENTO = OUTPUT_DIR / "monitoramento"
-
-# Garante que as pastas de saída existam
-for _d in (OUTPUT_CONFERENCIA, OUTPUT_RETIFICACOES, OUTPUT_MONITORAMENTO):
-    _d.mkdir(parents=True, exist_ok=True)
+OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
 COR_CABECALHO = "1F4E78"
 COR_SEM_REGISTRO_SECRETARIA = "FFF2CC"   # secretaria não tinha nada -> precisa lançar
@@ -335,8 +329,8 @@ def gerar_markdown(retificacoes, sobreposicoes, caminho_saida, mes_label, total_
         f.write("\n".join(linhas).rstrip() + "\n")
 
 
-def processar_par(caminho_secretaria, caminho_sistema, ano_mes=None, desligados=None):
-    """Processa um par de relatórios (secretaria + sistema) e gera os arquivos em output/."""
+def processar_par(caminho_secretaria, caminho_sistema, ano_mes=None, desligados=None, pasta_saida_mes=None):
+    """Processa um par de relatórios (secretaria + sistema) e gera os arquivos em output/<mes>/."""
     caminho_secretaria = Path(caminho_secretaria)
     caminho_sistema = Path(caminho_sistema)
 
@@ -359,7 +353,6 @@ def processar_par(caminho_secretaria, caminho_sistema, ano_mes=None, desligados=
     elif nome_sec:
         nome_orgao = nome_sec
     else:
-        # Tenta pegar prefixo do arquivo (ex: "116 - secretaria.pdf" -> "116")
         m_arq = re.match(r"^(\d{3})\b", caminho_secretaria.stem)
         nome_orgao = m_arq.group(1) if m_arq else caminho_secretaria.stem
 
@@ -396,7 +389,8 @@ def processar_par(caminho_secretaria, caminho_sistema, ano_mes=None, desligados=
 
     secao_memo = None
     if cod_busca:
-        arq_memo = localizar_memorando(cod_busca, INPUT_DIR)
+        # Busca prioritariamente na pasta onde o relatório da secretaria está
+        arq_memo = localizar_memorando(cod_busca, caminho_secretaria.parent)
         if arq_memo:
             print(f"\n[MEMORANDO] Localizado memorando de retificação: {arq_memo.name}")
             try:
@@ -413,14 +407,29 @@ def processar_par(caminho_secretaria, caminho_sistema, ano_mes=None, desligados=
             except Exception as err:
                 print(f"  -> [AVISO] Falha ao processar memorando {arq_memo.name}: {err}")
 
-    # 6. Definir nomes de saída
+    # 6. Definir pastas de saída mensais
+    if pasta_saida_mes:
+        mes_pasta_nome = pasta_saida_mes
+    elif ano_ref and mes_ref:
+        mes_pasta_nome = f"{ano_ref}-{str(mes_ref).zfill(2)}"
+    else:
+        p_name = caminho_secretaria.parent.name
+        mes_pasta_nome = p_name if re.match(r"^\d{4}-\d{2}$", p_name) else "geral"
+
+    dir_conferencia = OUTPUT_DIR / mes_pasta_nome / "conferencia"
+    dir_retificacoes = OUTPUT_DIR / mes_pasta_nome / "retificacoes"
+    dir_monitoramento = OUTPUT_DIR / mes_pasta_nome / "monitoramento"
+
+    for _d in (dir_conferencia, dir_retificacoes, dir_monitoramento):
+        _d.mkdir(parents=True, exist_ok=True)
+
     nome_saida = sanitizar_nome_arquivo(nome_orgao)
-    caminho_xlsx = OUTPUT_CONFERENCIA / f"conferencia_{nome_saida}.xlsx"
+    caminho_xlsx = dir_conferencia / f"conferencia_{nome_saida}.xlsx"
     gerar_excel(retificacoes, sobreposicoes, str(caminho_xlsx), len(regs_sec), len(regs_sis), mes_label, nome_orgao=nome_orgao)
     print(f"[OK] Excel salvo em: {caminho_xlsx.relative_to(BASE_DIR)}")
 
-    caminho_md = OUTPUT_RETIFICACOES / f"retificacoes_{nome_saida}.md"
-    caminho_txt = OUTPUT_RETIFICACOES / f"retificacoes_{nome_saida}.txt"
+    caminho_md = dir_retificacoes / f"retificacoes_{nome_saida}.md"
+    caminho_txt = dir_retificacoes / f"retificacoes_{nome_saida}.txt"
 
     if retificacoes or sobreposicoes or secao_memo:
         gerar_markdown(retificacoes, sobreposicoes, str(caminho_md), mes_label, len(regs_sec), len(regs_sis), nome_orgao=nome_orgao, secao_memorando=secao_memo)
@@ -429,27 +438,27 @@ def processar_par(caminho_secretaria, caminho_sistema, ano_mes=None, desligados=
         gerar_txt(retificacoes, sobreposicoes, str(caminho_txt))
         print(f"[OK] Texto puro salvo em: {caminho_txt.relative_to(BASE_DIR)}")
     else:
-        # Remove relatórios antigos se a secretaria atingiu 100% de conformidade
         if caminho_md.exists():
             caminho_md.unlink()
         if caminho_txt.exists():
             caminho_txt.unlink()
         print("[INFO] Nenhuma retificação necessária (100% de conformidade!).")
 
-    # 6. Gerar relatório de monitoramento de atrasos (minutos perdidos) e faltas acumuladas
+    # 7. Gerar relatório de monitoramento de atrasos e faltas acumuladas
     dados_monit = apurar_dados_monitoramento(regs_sec, regs_sis)
     if dados_monit["atrasos"] or dados_monit["faltas"]:
-        caminho_monit_md = OUTPUT_MONITORAMENTO / f"monitoramento_{nome_saida}.md"
+        caminho_monit_md = dir_monitoramento / f"monitoramento_{nome_saida}.md"
         gerar_markdown_monitoramento(dados_monit, str(caminho_monit_md), mes_label, nome_orgao=nome_orgao)
         print(f"[OK] Monitoramento Markdown: {caminho_monit_md.relative_to(BASE_DIR)}")
 
-        caminho_monit_xlsx = OUTPUT_MONITORAMENTO / f"monitoramento_{nome_saida}.xlsx"
+        caminho_monit_xlsx = dir_monitoramento / f"monitoramento_{nome_saida}.xlsx"
         gerar_excel_monitoramento(dados_monit, str(caminho_monit_xlsx), mes_label, nome_orgao=nome_orgao)
         print(f"[OK] Monitoramento Excel:    {caminho_monit_xlsx.relative_to(BASE_DIR)}")
 
     return {
         "orgao": nome_orgao,
         "mes": mes_label,
+        "pasta_mes": mes_pasta_nome,
         "registros_sec": len(regs_sec),
         "registros_sis": len(regs_sis),
         "retificacoes": len(retificacoes),
@@ -458,94 +467,224 @@ def processar_par(caminho_secretaria, caminho_sistema, ano_mes=None, desligados=
     }
 
 
-def descobrir_pares():
-    """Varre as pastas input/secretaria e input/sistema e pareia os arquivos correspondentes."""
-    sec_dir = INPUT_DIR / "secretaria"
-    sis_dir = INPUT_DIR / "sistema"
-
-    if not sec_dir.exists() or not sis_dir.exists():
-        return []
-
+def descobrir_pares_na_pasta(pasta):
+    """Encontra pares de secretaria e sistema dentro de uma pasta de mês."""
+    pasta = Path(pasta)
     pares = []
-    for f_sec in sorted(sec_dir.glob("*.pdf")):
-        # 1. Padrão: "COD - secretaria.pdf" <-> "COD - sistema.pdf"
+
+    # 1. Se houver subpastas secretaria/ e sistema/
+    sec_sub = pasta / "secretaria"
+    sis_sub = pasta / "sistema"
+    if sec_sub.is_dir() and sis_sub.is_dir():
+        for f_sec in sorted(sec_sub.glob("*.pdf")):
+            m = re.match(r"^(.+?)\s*-\s*secretaria\.pdf$", f_sec.name, re.IGNORECASE)
+            if m:
+                prefixo = m.group(1).strip()
+                f_sis = sis_sub / f"{prefixo} - sistema.pdf"
+                if f_sis.exists():
+                    pares.append((f_sec, f_sis))
+                    continue
+            m_num = re.match(r"^(\d+)", f_sec.stem)
+            if m_num:
+                cod = m_num.group(1)
+                sis_cands = list(sis_sub.glob(f"{cod}*.pdf"))
+                if sis_cands:
+                    pares.append((f_sec, sis_cands[0]))
+                    continue
+        if pares:
+            return pares
+
+    # 2. Arquivos diretamente na pasta do mês (sem subpastas)
+    todos_pdfs = list(pasta.glob("*.pdf"))
+    sec_files = [f for f in todos_pdfs if re.search(r"secretaria", f.name, re.IGNORECASE)]
+    sis_files = [f for f in todos_pdfs if re.search(r"sistema", f.name, re.IGNORECASE)]
+
+    for f_sec in sorted(sec_files):
         m = re.match(r"^(.+?)\s*-\s*secretaria\.pdf$", f_sec.name, re.IGNORECASE)
         if m:
             prefixo = m.group(1).strip()
-            # Procura no sistema por "COD - sistema.pdf"
-            f_sis = sis_dir / f"{prefixo} - sistema.pdf"
-            if f_sis.exists():
-                pares.append((f_sec, f_sis))
+            cand = [f for f in sis_files if re.match(rf"^{re.escape(prefixo)}\s*-\s*sistema\.pdf$", f.name, re.IGNORECASE)]
+            if cand:
+                pares.append((f_sec, cand[0]))
                 continue
 
-        # 2. Padrão: Mesmo nome de arquivo em ambas as pastas (ex: "2026-04.pdf")
-        f_sis_mesmo_nome = sis_dir / f_sec.name
-        if f_sis_mesmo_nome.exists():
-            pares.append((f_sec, f_sis_mesmo_nome))
-            continue
-
-        # 3. Padrão por código numérico inicial (ex: 116...)
         m_num = re.match(r"^(\d+)", f_sec.stem)
         if m_num:
             cod = m_num.group(1)
-            sis_candidatos = list(sis_dir.glob(f"{cod}*.pdf"))
-            if sis_candidatos:
-                pares.append((f_sec, sis_candidatos[0]))
+            cand = [f for f in sis_files if re.match(rf"^{cod}\b", f.stem)]
+            if cand:
+                pares.append((f_sec, cand[0]))
+                continue
 
     return pares
+
+
+def descobrir_lotes(input_dir, mes_filtro=None):
+    """Descobre lotes mensais em input/."""
+    input_dir = Path(input_dir)
+    lotes = []
+
+    # Procura subpastas de meses na raiz de input
+    for item in sorted(input_dir.iterdir()):
+        if not item.is_dir():
+            continue
+        if item.name.lower() in ("secretaria", "sistema", "desligados", ".git", "__pycache__"):
+            continue
+        if mes_filtro and item.name != mes_filtro:
+            continue
+
+        pares = descobrir_pares_na_pasta(item)
+        if pares:
+            lotes.append({
+                "mes_id": item.name,
+                "pasta": item,
+                "pares": pares,
+            })
+
+    # Compatibilidade com modo legado se não encontrou pastas mensais
+    if not lotes and not mes_filtro:
+        sec_dir = input_dir / "secretaria"
+        sis_dir = input_dir / "sistema"
+        if sec_dir.is_dir() and sis_dir.is_dir():
+            pares_legado = descobrir_pares_na_pasta(input_dir)
+            if pares_legado:
+                lotes.append({
+                    "mes_id": None,
+                    "pasta": input_dir,
+                    "pares": pares_legado,
+                })
+
+    return lotes
+
+
+def selecionar_lotes_interativo(lotes_disponiveis):
+    """Permite ao usuário escolher qual mês processar, sugerindo o mais recente como padrão."""
+    if not lotes_disponiveis:
+        return []
+
+    # Ordena com o mais recente primeiro (ex: '2026-09', depois '2026-08')
+    lotes_ordenados = sorted(lotes_disponiveis, key=lambda l: l["mes_id"] or "", reverse=True)
+
+    # Se só houver 1 lote, processa ele diretamente
+    if len(lotes_ordenados) == 1:
+        print(f"\n[INFO] Mês identificado em input/: {lotes_ordenados[0]['mes_id'] or 'raiz'}")
+        return lotes_ordenados
+
+    # Se não for terminal interativo (ex: execução em background), assume o último mês cadastrado
+    if not sys.stdin.isatty():
+        print(f"\n[INFO] Modo automático/não interativo. Selecionando o último mês cadastrado: {lotes_ordenados[0]['mes_id']}")
+        return [lotes_ordenados[0]]
+
+    print("\n" + "=" * 65)
+    print("  CONFERÊNCIA DE FREQUÊNCIA — SELEÇÃO DE MÊS")
+    print("=" * 65)
+    print("Meses identificados em input/:")
+    for idx, lote in enumerate(lotes_ordenados, start=1):
+        extra = " (Último mês cadastrado - PADRÃO)" if idx == 1 else ""
+        print(f"  [{idx}] {lote['mes_id'] or 'raiz'} ({len(lote['pares'])} secretarias){extra}")
+    print("  [T] Processar TODOS os meses")
+    print("  [S] Sair")
+    print("-" * 65)
+
+    while True:
+        try:
+            escolha = input("Escolha o mês a processar [1]: ").strip().upper()
+        except (EOFError, KeyboardInterrupt):
+            print("\nOperação cancelada pelo usuário.")
+            sys.exit(0)
+
+        if escolha in ("", "1"):
+            return [lotes_ordenados[0]]
+        elif escolha == "T":
+            return lotes_disponiveis
+        elif escolha == "S":
+            print("Operação encerrada.")
+            sys.exit(0)
+        elif escolha.isdigit():
+            idx_num = int(escolha)
+            if 1 <= idx_num <= len(lotes_ordenados):
+                return [lotes_ordenados[idx_num - 1]]
+        print("Opção inválida. Digite o número correspondente, 'T' para todos ou 'S' para sair.")
 
 
 def main():
     args = [a for a in sys.argv[1:] if not a.startswith("--")]
 
     ano_mes = None
+    mes_filtro = None
+    modo_todos = "--todos" in sys.argv
+    modo_ultimo = "--ultimo" in sys.argv
+
     if "--mes" in sys.argv:
         valor = sys.argv[sys.argv.index("--mes") + 1]
-        ano_str, mes_str = valor.split("-")
-        ano_mes = (int(ano_str), int(mes_str))
+        mes_filtro = valor
+        if "-" in valor:
+            ano_str, mes_str = valor.split("-", 1)
+            if ano_str.isdigit() and mes_str.isdigit():
+                ano_mes = (int(ano_str), int(mes_str))
 
     desligados, arq_desligados = localizar_e_carregar_desligados(INPUT_DIR)
 
     if len(args) == 2:
         caminho_secretaria, caminho_sistema = args
-        processar_par(caminho_secretaria, caminho_sistema, ano_mes=ano_mes, desligados=desligados)
+        processar_par(caminho_secretaria, caminho_sistema, ano_mes=ano_mes, desligados=desligados, pasta_saida_mes=mes_filtro)
     elif len(args) == 0:
-        pares = descobrir_pares()
-        if not pares:
-            print("\n[AVISO] Nenhum par de arquivos encontrado em:")
-            print(f"  - {INPUT_DIR / 'secretaria'}")
-            print(f"  - {INPUT_DIR / 'sistema'}")
+        lotes = descobrir_lotes(INPUT_DIR, mes_filtro=mes_filtro)
+        if not lotes:
+            print("\n[AVISO] Nenhum par de relatórios encontrado em:")
+            print(f"  - {INPUT_DIR}")
+            print("\nEstrutura esperada por mês:")
+            print("  input/<AAAA-MM>/<COD> - secretaria.pdf")
+            print("  input/<AAAA-MM>/<COD> - sistema.pdf")
+            print("  input/<AAAA-MM>/<COD> - retificação.pdf (opcional)")
+            print("  input/Controle Desligamentos 2026.ods (na raiz de input)")
             print("\nUso manual:")
             print("  python src/main.py <pdf_secretaria> <pdf_sistema> [--mes AAAA-MM]\n")
             sys.exit(1)
 
+        # Se não especificou filtro nem modo todos, seleciona via menu ou último cadastrado
+        if not mes_filtro and not modo_todos:
+            if modo_ultimo:
+                lotes_ordenados = sorted(lotes, key=lambda l: l["mes_id"] or "", reverse=True)
+                lotes_para_rodar = [lotes_ordenados[0]]
+            else:
+                lotes_para_rodar = selecionar_lotes_interativo(lotes)
+        else:
+            lotes_para_rodar = lotes
+
         print("\n" + "#" * 65)
-        print(f"  CONFERÊNCIA DE FREQUÊNCIA — PROCESSAMENTO EM LOTE")
-        print(f"  Foram encontrados {len(pares)} pares de relatórios para conferência.")
+        print(f"  CONFERÊNCIA DE FREQUÊNCIA — PROCESSAMENTO")
+        print(f"  Mês(es) selecionado(s): {', '.join(l['mes_id'] or 'raiz' for l in lotes_para_rodar)}")
         if desligados:
             print(f"  Controle de Desligamentos: {len(desligados)} registros ativos ({arq_desligados})")
         print("#" * 65)
 
-        resultados = []
-        for sec, sis in pares:
-            res = processar_par(sec, sis, ano_mes=ano_mes, desligados=desligados)
-            resultados.append(res)
+        todos_resultados = []
+        for lote in lotes_para_rodar:
+            mes_id = lote["mes_id"]
+            pares = lote["pares"]
+            print(f"\n>>> INICIANDO LOTE: {mes_id or 'raiz'} ({len(pares)} pares) <<<")
+
+            for sec, sis in pares:
+                res = processar_par(sec, sis, ano_mes=ano_mes, desligados=desligados, pasta_saida_mes=mes_id)
+                todos_resultados.append(res)
 
         print("\n" + "#" * 65)
         print("RESUMO FINAL DO PROCESSAMENTO:")
         print("#" * 65)
-        for r in resultados:
+        for r in todos_resultados:
             detalhe_extras = []
             if r.get("atrasos_minutos"):
                 detalhe_extras.append(f"Atrasos: {r['atrasos_minutos']} min")
             if r.get("faltas_acumuladas"):
                 detalhe_extras.append(f"Faltas: {r['faltas_acumuladas']} dia(s)")
             extras_str = f" | {' | '.join(detalhe_extras)}" if detalhe_extras else ""
-            print(f"  * {r['orgao']} ({r['mes']}): {r['retificacoes']} retificação(ões){extras_str}")
+            pasta_info = f" [{r['pasta_mes']}]" if r.get("pasta_mes") else ""
+            print(f"  *{pasta_info} {r['orgao']} ({r['mes']}): {r['retificacoes']} retificação(ões){extras_str}")
         print("#" * 65 + "\n")
     else:
         print("Uso: python src/main.py <pdf_secretaria> <pdf_sistema> [--mes AAAA-MM]")
-        print("  Ou rode apenas 'python src/main.py' para processar todos os pares da pasta input/")
+        print("  Ou rode apenas 'python src/main.py' para selecionar e processar os lotes de input/")
         sys.exit(1)
 
 

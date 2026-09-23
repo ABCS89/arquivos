@@ -95,18 +95,25 @@ def carregar_desligados_ods(caminho_ods):
 
 
 def localizar_e_carregar_desligados(diretorio_base):
-    """Procura automaticamente por arquivos de desligamento na pasta input."""
+    """Procura automaticamente por arquivos de desligamento na pasta informada ou na raiz pai."""
     base = Path(diretorio_base)
-    candidatos = list(base.glob("*desligamento*.ods")) + \
-                 list(base.glob("*desligado*.ods")) + \
-                 list(base.glob("*.ods"))
+    pastas_busca = [base]
+    if base.name != "input" and (base.parent / "input").exists():
+        pastas_busca.append(base.parent / "input")
+    elif base.parent.exists() and base.parent != base:
+        pastas_busca.append(base.parent)
 
-    for arq in candidatos:
-        if arq.is_file():
-            try:
-                dados = carregar_desligados_ods(str(arq))
-                if dados:
-                    return dados, arq.name
-            except Exception:
-                continue
+    for p in pastas_busca:
+        candidatos = list(p.glob("*desligamento*.ods")) + \
+                     list(p.glob("*desligado*.ods")) + \
+                     list(p.glob("*.ods"))
+
+        for arq in candidatos:
+            if arq.is_file():
+                try:
+                    dados = carregar_desligados_ods(str(arq))
+                    if dados:
+                        return dados, arq.name
+                except Exception:
+                    continue
     return {}, None
