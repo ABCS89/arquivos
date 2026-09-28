@@ -1,6 +1,10 @@
 o abono eleitoral é concedido exclusivamente aos servidores que, à época da eleição, já mantinham vínculo ativo com a Prefeitura, dessa forma, considerando a inexistência de vínculo funcional na data do evento, fica impossibilitado o lançamento do referido abono nos registros funcionais do servidor.
 
 
+
+INDEFERIDO, o documento não está acompanhado da Declaração de Trabalhos Eleitorais (DTE) emitida pela Justiça Eleitoral, conforme o art. 98 da Lei n. 9.504/1997 e o § 3ºdo art. 15 da Resolução-TSE n. 23.751/2026.
+
+
 Treinamento (
 
 Treinamento 1º Turno (
