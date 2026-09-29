@@ -39,6 +39,7 @@ from memorando import (
     conferir_memorando_com_solicitacoes,
     gerar_secao_memorando_markdown,
 )
+from export_powerbi import consolidar_monitoramento
 
 from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill, Alignment
@@ -682,6 +683,13 @@ def main():
             pasta_info = f" [{r['pasta_mes']}]" if r.get("pasta_mes") else ""
             print(f"  *{pasta_info} {r['orgao']} ({r['mes']}): {r['retificacoes']} retificação(ões){extras_str}")
         print("#" * 65 + "\n")
+
+        # Atualiza automaticamente a base consolidada para o Power BI
+        try:
+            print("[Power BI] Atualizando base de dados consolidada para o dashboard...")
+            consolidar_monitoramento()
+        except Exception as e:
+            print(f"[Power BI] Aviso ao consolidar dados para o Power BI: {e}")
     else:
         print("Uso: python src/main.py <pdf_secretaria> <pdf_sistema> [--mes AAAA-MM]")
         print("  Ou rode apenas 'python src/main.py' para selecionar e processar os lotes de input/")
