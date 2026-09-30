@@ -36,6 +36,66 @@ def extrair_codigo_e_nome(nome_arquivo):
     return "", stem
 
 
+# Mapa de siglas/nomes curtos para exibição elegante no Power BI
+MAPA_SIGLAS_SECRETARIAS = {
+    "101": "GABINETE",
+    "102": "SEMAD",
+    "103": "PGM",
+    "104": "SMF",
+    "106": "SEPLAG",
+    "107": "Educação",     # Ajustado conforme solicitado
+    "108": "OBRAS",
+    "109": "SMADS",
+    "110": "AGRIMA",       # Agricultura e Meio Ambiente
+    "112": "SEMAC",
+    "113": "SEMIC",
+    "114": "Saúde",        # Ajustado conforme solicitado
+    "116": "GCMP",        # Guarda Civil
+    "119": "SELAM",       # Esportes e Lazer
+    "120": "SETUR",
+    "121": "EMDHAP",
+    "122": "SEGOV",
+    "123": "IPASP",
+    "124": "SEGTRANS",    # Ajustado conforme solicitado (Trânsito/Transportes)
+    "125": "SEMA",
+}
+
+
+def obter_sigla_secretaria(codigo, nome):
+    """Retorna a sigla/nome curto amigável da secretaria pelo código ou palavra-chave."""
+    cod = str(codigo).strip()
+    if cod in MAPA_SIGLAS_SECRETARIAS:
+        return MAPA_SIGLAS_SECRETARIAS[cod]
+
+    nome_upper = (nome or "").upper()
+    if "AGRICULTURA" in nome_upper or "MEIO AMBIENTE" in nome_upper:
+        return "AGRIMA"
+    if "EDUCA" in nome_upper:
+        return "Educação"
+    if "PROCURADORIA" in nome_upper:
+        return "PGM"
+    if "ASSIST" in nome_upper or "DESENVOLVIMENTO SOCIAL" in nome_upper:
+        return "SMADS"
+    if "CULTURA" in nome_upper:
+        return "SEMAC"
+    if "GUARDA" in nome_upper:
+        return "GCMP"
+    if "ESPORTE" in nome_upper or "LAZER" in nome_upper:
+        return "SELAM"
+    if "SEGURAN" in nome_upper or "TRANSIT" in nome_upper or "TRANSP" in nome_upper:
+        return "SEGTRANS"
+    if "ADMINISTRA" in nome_upper:
+        return "SEMAD"
+    if "FINAN" in nome_upper:
+        return "SMF"
+    if "SAUDE" in nome_upper or cod == "114":
+        return "Saúde"
+    if "OBRAS" in nome_upper:
+        return "OBRAS"
+
+    return cod if cod else nome
+
+
 def consolidar_monitoramento():
     """Varre todas as pastas em output/<mes>/monitoramento/*.xlsx e unifica em tabelas."""
     POWERBI_DIR.mkdir(parents=True, exist_ok=True)
@@ -64,18 +124,120 @@ def consolidar_monitoramento():
 
         for arq in arquivos:
             cod_sec, nome_sec = extrair_codigo_e_nome(arq.name)
+            sigla_sec = obter_sigla_secretaria(cod_sec, nome_sec)
+
             try:
                 wb = load_workbook(arq, data_only=True)
             except Exception as e:
                 print(f"     [AVISO] Falha ao abrir {arq.name}: {e}")
                 continue
 
-            # 1. Ler Aba Resumo
+            # 1. Ler Aba Atrasos (Minutos) primeiro para apurar quem tem >= 300 min
+            nome_aba_atrasos = None
+            for s in wb.sheetnames:
+                if "atraso" in s.lower() or "minuto" in s.lower():
+                    nome_aba_atrasos = s
+                    break
+
+            atrasos_desta_sec = []
+            if nome_aba_atrasos:
+                ws_atr = wb[nome_aba_atrasos]
+                for r in range(2, ws_atr.max_row + 1):
+                    mat = ws_atr.cell(row=r, column=1).value
+                    if not mat:
+                        continue
+                    nome = ws_atr.cell(row=r, column=2).value or ""
+                    min_val = ws_atr.cell(row=r, column=3).value or 0
+                    equiv = ws_atr.cell(row=r, column=4).value or ""
+                    det = ws_atr.cell(row=r, column=5).value or ""
+                    status = ws_atr.cell(row=r, column=6).value or ""
+
+                    try: min_int = int(min_val)
+                    except: min_int = 0
+
+                    acima_300 = "Sim" if min_int >= 300 else "Não"
+                    status_questionar = "Questionar (>= 300 min)" if min_int >= 300 else "Tolerado (< 300 min)"
+
+                    item_atr = {
+                        "AnoMes": mes_id,
+                        "MesReferencia": mes_id,
+                        "CodigoSecretaria": cod_sec,
+                        "Secretaria": sigla_sec,
+                        "NomeCompletoSecretaria": nome_sec,
+                        "OrgaoCompleto": f"{cod_sec} - {sigla_sec}" if cod_sec else sigla_sec,
+                        "Matricula": str(mat).strip(),
+                        "NomeServidor": str(nome).strip(),
+                        "MinutosAcumulados": min_int,
+                        "HorasEquivalentes": round(min_int / 60.0, 2),
+                        "Acima300Min": acima_300,
+                        "QuestionarSecretaria": status_questionar,
+                        "EquivalenciaTexto": str(equiv).strip(),
+                        "OcorrenciasDatas": str(det).strip(),
+                        "SituacaoSistema": str(status).strip(),
+                    }
+                    linhas_atrasos.append(item_atr)
+                    atrasos_desta_sec.append(item_atr)
+
+            # Contadores de servidores >= 300 min para o resumo
+            servs_mais_300 = [a for a in atrasos_desta_sec if a["MinutosAcumulados"] >= 300]
+            qtd_serv_mais_300 = len(servs_mais_300)
+            tot_minutos_mais_300 = sum(a["MinutosAcumulados"] for a in servs_mais_300)
+
+            # 2. Ler Aba Faltas (Dias)
+            nome_aba_faltas = None
+            for s in wb.sheetnames:
+                if "falta" in s.lower():
+                    nome_aba_faltas = s
+                    break
+
+            faltas_desta_sec = []
+            if nome_aba_faltas:
+                ws_flt = wb[nome_aba_faltas]
+                for r in range(2, ws_flt.max_row + 1):
+                    mat = ws_flt.cell(row=r, column=1).value
+                    if not mat:
+                        continue
+                    nome = ws_flt.cell(row=r, column=2).value or ""
+                    dias_val = ws_flt.cell(row=r, column=3).value or 0
+                    tipos = ws_flt.cell(row=r, column=4).value or ""
+                    det = ws_flt.cell(row=r, column=5).value or ""
+                    status = ws_flt.cell(row=r, column=6).value or ""
+
+                    try: dias_int = int(dias_val)
+                    except: dias_int = 0
+
+                    acima_4_faltas = "Sim" if dias_int >= 4 else "Não"
+                    status_questionar_falta = "Questionar (>= 4 faltas)" if dias_int >= 4 else "Tolerado (< 4 faltas)"
+
+                    item_flt = {
+                        "AnoMes": mes_id,
+                        "MesReferencia": mes_id,
+                        "CodigoSecretaria": cod_sec,
+                        "Secretaria": sigla_sec,
+                        "NomeCompletoSecretaria": nome_sec,
+                        "OrgaoCompleto": f"{cod_sec} - {sigla_sec}" if cod_sec else sigla_sec,
+                        "Matricula": str(mat).strip(),
+                        "NomeServidor": str(nome).strip(),
+                        "DiasFalta": dias_int,
+                        "Acima4Faltas": acima_4_faltas,
+                        "QuestionarFalta": status_questionar_falta,
+                        "TiposFalta": str(tipos).strip(),
+                        "OcorrenciasDatas": str(det).strip(),
+                        "SituacaoSistema": str(status).strip(),
+                    }
+                    linhas_faltas.append(item_flt)
+                    faltas_desta_sec.append(item_flt)
+
+            servs_mais_4_faltas = [f for f in faltas_desta_sec if f["DiasFalta"] >= 4]
+            qtd_serv_mais_4_faltas = len(servs_mais_4_faltas)
+            tot_dias_mais_4_faltas = sum(f["DiasFalta"] for f in servs_mais_4_faltas)
+
+            # 3. Ler Aba Resumo
             mes_label = mes_id
-            qtd_serv_atraso = 0
-            tot_minutos = 0
-            qtd_serv_falta = 0
-            tot_dias_falta = 0
+            qtd_serv_atraso = len(atrasos_desta_sec)
+            tot_minutos = sum(a["MinutosAcumulados"] for a in atrasos_desta_sec)
+            qtd_serv_falta = len(faltas_desta_sec)
+            tot_dias_falta = sum(f["DiasFalta"] for f in faltas_desta_sec)
 
             if "Resumo" in wb.sheetnames:
                 ws_res = wb["Resumo"]
@@ -83,6 +245,10 @@ def consolidar_monitoramento():
                 m_label = re.search(r"\((.+?)\)", str(titulo_res))
                 if m_label:
                     mes_label = m_label.group(1).strip()
+                    for a in atrasos_desta_sec:
+                        a["MesReferencia"] = mes_label
+                    for f in faltas_desta_sec:
+                        f["MesReferencia"] = mes_label
 
                 for row in range(3, ws_res.max_row + 1):
                     ind = str(ws_res.cell(row=row, column=1).value or "").strip().lower()
@@ -105,91 +271,24 @@ def consolidar_monitoramento():
                         if m_dias:
                             tot_dias_falta = int(m_dias.group(1))
 
-                linhas_resumo.append({
-                    "AnoMes": mes_id,
-                    "MesReferencia": mes_label,
-                    "CodigoSecretaria": cod_sec,
-                    "Secretaria": nome_sec,
-                    "OrgaoCompleto": f"{cod_sec} - {nome_sec}" if cod_sec else nome_sec,
-                    "QtdServidoresAtraso": qtd_serv_atraso,
-                    "TotalMinutosPerdidos": tot_minutos,
-                    "TotalHorasPerdidas": round(tot_minutos / 60.0, 2),
-                    "QtdServidoresFalta": qtd_serv_falta,
-                    "TotalDiasFalta": tot_dias_falta,
-                })
-
-            # 2. Ler Aba Atrasos (Minutos)
-            nome_aba_atrasos = None
-            for s in wb.sheetnames:
-                if "atraso" in s.lower() or "minuto" in s.lower():
-                    nome_aba_atrasos = s
-                    break
-
-            if nome_aba_atrasos:
-                ws_atr = wb[nome_aba_atrasos]
-                for r in range(2, ws_atr.max_row + 1):
-                    mat = ws_atr.cell(row=r, column=1).value
-                    if not mat:
-                        continue
-                    nome = ws_atr.cell(row=r, column=2).value or ""
-                    min_val = ws_atr.cell(row=r, column=3).value or 0
-                    equiv = ws_atr.cell(row=r, column=4).value or ""
-                    det = ws_atr.cell(row=r, column=5).value or ""
-                    status = ws_atr.cell(row=r, column=6).value or ""
-
-                    try: min_int = int(min_val)
-                    except: min_int = 0
-
-                    linhas_atrasos.append({
-                        "AnoMes": mes_id,
-                        "MesReferencia": mes_label,
-                        "CodigoSecretaria": cod_sec,
-                        "Secretaria": nome_sec,
-                        "OrgaoCompleto": f"{cod_sec} - {nome_sec}" if cod_sec else nome_sec,
-                        "Matricula": str(mat).strip(),
-                        "NomeServidor": str(nome).strip(),
-                        "MinutosAcumulados": min_int,
-                        "HorasEquivalentes": round(min_int / 60.0, 2),
-                        "EquivalenciaTexto": str(equiv).strip(),
-                        "OcorrenciasDatas": str(det).strip(),
-                        "SituacaoSistema": str(status).strip(),
-                    })
-
-            # 3. Ler Aba Faltas (Dias)
-            nome_aba_faltas = None
-            for s in wb.sheetnames:
-                if "falta" in s.lower():
-                    nome_aba_faltas = s
-                    break
-
-            if nome_aba_faltas:
-                ws_flt = wb[nome_aba_faltas]
-                for r in range(2, ws_flt.max_row + 1):
-                    mat = ws_flt.cell(row=r, column=1).value
-                    if not mat:
-                        continue
-                    nome = ws_flt.cell(row=r, column=2).value or ""
-                    dias_val = ws_flt.cell(row=r, column=3).value or 0
-                    tipos = ws_flt.cell(row=r, column=4).value or ""
-                    det = ws_flt.cell(row=r, column=5).value or ""
-                    status = ws_flt.cell(row=r, column=6).value or ""
-
-                    try: dias_int = int(dias_val)
-                    except: dias_int = 0
-
-                    linhas_faltas.append({
-                        "AnoMes": mes_id,
-                        "MesReferencia": mes_label,
-                        "CodigoSecretaria": cod_sec,
-                        "Secretaria": nome_sec,
-                        "OrgaoCompleto": f"{cod_sec} - {nome_sec}" if cod_sec else nome_sec,
-                        "Matricula": str(mat).strip(),
-                        "NomeServidor": str(nome).strip(),
-                        "DiasFalta": dias_int,
-                        "TiposFalta": str(tipos).strip(),
-                        "OcorrenciasDatas": str(det).strip(),
-                        "SituacaoSistema": str(status).strip(),
-                    })
+            linhas_resumo.append({
+                "AnoMes": mes_id,
+                "MesReferencia": mes_label,
+                "CodigoSecretaria": cod_sec,
+                "Secretaria": sigla_sec,
+                "NomeCompletoSecretaria": nome_sec,
+                "OrgaoCompleto": f"{cod_sec} - {sigla_sec}" if cod_sec else sigla_sec,
+                "QtdServidoresAtraso": qtd_serv_atraso,
+                "TotalMinutosPerdidos": tot_minutos,
+                "TotalHorasPerdidas": round(tot_minutos / 60.0, 2),
+                "QtdServidoresMais300Min": qtd_serv_mais_300,
+                "TotalMinutosMais300Min": tot_minutos_mais_300,
+                "TotalHorasMais300Min": round(tot_minutos_mais_300 / 60.0, 2),
+                "QtdServidoresFalta": qtd_serv_falta,
+                "TotalDiasFalta": tot_dias_falta,
+                "QtdServidoresMais4Faltas": qtd_serv_mais_4_faltas,
+                "TotalDiasMais4Faltas": tot_dias_mais_4_faltas,
+            })
 
     # Gravar Excel Consolidado
     caminho_xlsx = POWERBI_DIR / "monitoramento_consolidado.xlsx"
