@@ -1,8 +1,0 @@
-pandas
-openpyxl
-odfpy
-python-docx
-docxtpl
-PyPDF2
-num2words
-holidays
