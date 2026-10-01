@@ -1,0 +1,6 @@
+pandas
+odfpy
+openpyxl
+xlrd
+pdfplumber
+pypdf

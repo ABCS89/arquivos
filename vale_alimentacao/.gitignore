@@ -1,0 +1,10 @@
+# Dados e relatórios
+data/
+output/
+
+# Cache Python e ambientes virtuais
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
