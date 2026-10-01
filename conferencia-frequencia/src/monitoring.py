@@ -14,6 +14,81 @@ from openpyxl.utils import get_column_letter
 COR_CABECALHO = "1F4E78"
 COR_ATRASO = "FFF2CC"      # amarelo suave para atrasos/minutos perdidos
 COR_FALTA = "FCE4D6"       # laranja suave para faltas acumuladas
+COR_REGULARIZADO = "E2EFDA" # verde suave para ocorrências regularizadas por memorando
+
+
+def aplicar_retificacoes_memorando(regs_sec, atendidas, nome_memorando=""):
+    """
+    Substitui/baixa as ocorrências da secretaria que foram regularizadas pelo memorando.
+    Ex: as 14 faltas do José Leandro viram Tratamento de Saúde, saindo das faltas pendentes.
+    Retorna uma nova lista de registros atualizados e a lista de regularizações aplicadas.
+    """
+    if not atendidas:
+        return [dict(r) for r in regs_sec], []
+
+    import re
+    from datetime import datetime
+
+    def _norm_mat(m):
+        return re.sub(r"\D", "", str(m or ""))
+
+    atendidas_por_mat = {}
+    for at in atendidas:
+        m_norm = _norm_mat(at.get("matricula"))
+        atendidas_por_mat.setdefault(m_norm, []).append(at)
+
+    regs_atualizados = []
+    regularizacoes_aplicadas = []
+
+    for r in regs_sec:
+        r_copia = dict(r)
+        m_norm = _norm_mat(r_copia.get("matricula"))
+        if m_norm not in atendidas_por_mat:
+            regs_atualizados.append(r_copia)
+            continue
+
+        data_str = r_copia.get("data")
+        data_reg = None
+        if data_str:
+            try:
+                partes = data_str.split("/")
+                if len(partes) == 3:
+                    data_reg = datetime(int(partes[2]), int(partes[1]), int(partes[0])).date()
+            except Exception:
+                data_reg = None
+
+        foi_regularizado = False
+        for at in atendidas_por_mat[m_norm]:
+            coincide = False
+            if data_reg and at.get("data_inicio") and at.get("data_fim"):
+                if at["data_inicio"] <= data_reg <= at["data_fim"]:
+                    coincide = True
+            elif not data_reg:
+                coincide = True
+
+            if coincide:
+                oc_antiga = r_copia.get("ocorrencia") or ""
+                nova_oc = at.get("tipo_retificado") or "Regularizado"
+                r_copia["ocorrencia_original"] = oc_antiga
+                r_copia["ocorrencia"] = nova_oc
+                r_copia["regularizado_memorando"] = True
+                r_copia["memorando_origem"] = nome_memorando
+
+                regularizacoes_aplicadas.append({
+                    "matricula": r_copia["matricula"],
+                    "nome": r_copia["nome"],
+                    "data": data_str,
+                    "ocorrencia_anterior": oc_antiga,
+                    "ocorrencia_nova": nova_oc,
+                    "memorando": nome_memorando,
+                    "status": "Regularizado pelo Memorando",
+                })
+                foi_regularizado = True
+                break
+
+        regs_atualizados.append(r_copia)
+
+    return regs_atualizados, regularizacoes_aplicadas
 
 
 def _normalizar(texto):
@@ -41,7 +116,7 @@ def _formatar_minutos(minutos):
     return texto_h, m
 
 
-def apurar_dados_monitoramento(regs_sec, regs_sis):
+def apurar_dados_monitoramento(regs_sec, regs_sis, regularizados=None):
     """Apura minutos perdidos e faltas acumuladas no mês por servidor."""
     nomes = {}
     atrasos_sec = {}
@@ -150,12 +225,14 @@ def apurar_dados_monitoramento(regs_sec, regs_sis):
         "total_tempo_formatado": total_tempo_orgao,
         "total_servidores_faltas": len(lista_faltas),
         "total_dias_faltas": total_dias_faltas_orgao,
+        "total_regularizados": len(regularizados or []),
     }
 
     return {
         "resumo": resumo,
         "atrasos": lista_atrasos,
         "faltas": lista_faltas,
+        "regularizados": regularizados or [],
     }
 
 
@@ -176,7 +253,20 @@ def gerar_markdown_monitoramento(dados, caminho_md, mes_label, nome_orgao=""):
     linhas.append(f"- **Volume total de atrasos no mês**: {res['total_minutos']} minutos ({res['total_tempo_formatado']})")
     linhas.append(f"- **Servidores com faltas no mês**: {res['total_servidores_faltas']}")
     linhas.append(f"- **Total de faltas acumuladas no órgão**: {res['total_dias_faltas']} dia(s)")
+    if res.get("total_regularizados", 0) > 0:
+        linhas.append(f"- **Ocorrências baixadas/regularizadas via memorando**: {res['total_regularizados']}")
     linhas.append("")
+
+    # Seção de Regularizados
+    if dados.get("regularizados"):
+        linhas.append("## ✅ Ocorrências Regularizadas por Memorando")
+        linhas.append("Ocorrências que foram baixadas e substituídas após conferência do memorando formal da secretaria:")
+        linhas.append("")
+        linhas.append("| Matrícula | Nome do Servidor | Ocorrência Anterior | Retificado Para | Data / Período | Memorando | Situação |")
+        linhas.append("| :--- | :--- | :---: | :---: | :---: | :---: | :---: |")
+        for reg in dados["regularizados"]:
+            linhas.append(f"| `{reg['matricula']}` | {reg['nome']} | ~~{reg['ocorrencia_anterior']}~~ | **{reg['ocorrencia_nova']}** | {reg['data']} | {reg['memorando']} | {reg['status']} |")
+        linhas.append("")
 
     # Seção de Atrasos
     linhas.append("## ⏱️ Painel de Atrasos (Minutos Perdidos Acumulados)")
@@ -229,6 +319,8 @@ def gerar_excel_monitoramento(dados, caminho_xlsx, mes_label, nome_orgao=""):
     ws_res.append(["Total de minutos perdidos acumulados", f"{res['total_minutos']} min ({res['total_tempo_formatado']})"])
     ws_res.append(["Servidores com faltas registradas", res["total_servidores_faltas"]])
     ws_res.append(["Total de faltas acumuladas (dias)", f"{res['total_dias_faltas']} dia(s)"])
+    if res.get("total_regularizados", 0) > 0:
+        ws_res.append(["Ocorrências baixadas/regularizadas via memorando", res["total_regularizados"]])
 
     ws_res.column_dimensions["A"].width = 45
     ws_res.column_dimensions["B"].width = 30
@@ -276,6 +368,29 @@ def gerar_excel_monitoramento(dados, caminho_xlsx, mes_label, nome_orgao=""):
     for i, w in enumerate(larg_fal, start=1):
         ws_fal.column_dimensions[get_column_letter(i)].width = w
     ws_fal.freeze_panes = "A2"
+
+    # 4. Aba Regularizados (se houver)
+    if dados.get("regularizados"):
+        ws_reg = wb.create_sheet("Regularizados (Memorando)")
+        cols_reg = ["Matrícula", "Nome", "Ocorrência Anterior", "Retificado Para", "Data / Período", "Memorando", "Situação no Sistema"]
+        ws_reg.append(cols_reg)
+        for cel in ws_reg[1]:
+            cel.font = Font(bold=True, color="FFFFFF")
+            cel.fill = PatternFill("solid", fgColor=COR_CABECALHO)
+            cel.alignment = Alignment(horizontal="center")
+
+        for r_item in dados["regularizados"]:
+            ws_reg.append([
+                r_item["matricula"], r_item["nome"], r_item["ocorrencia_anterior"],
+                r_item["ocorrencia_nova"], r_item["data"], r_item["memorando"], r_item["status"]
+            ])
+            for cel in ws_reg[ws_reg.max_row]:
+                cel.fill = PatternFill("solid", fgColor=COR_REGULARIZADO)
+
+        larg_reg = [14, 36, 22, 25, 18, 25, 25]
+        for i, w in enumerate(larg_reg, start=1):
+            ws_reg.column_dimensions[get_column_letter(i)].width = w
+        ws_reg.freeze_panes = "A2"
 
     os.makedirs(os.path.dirname(caminho_xlsx), exist_ok=True)
     wb.save(caminho_xlsx)

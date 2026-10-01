@@ -388,17 +388,21 @@ def processar_par(caminho_secretaria, caminho_sistema, ano_mes=None, desligados=
         if m_arq:
             cod_busca = m_arq.group(1)
 
+    itens_atendidos_memo = []
+    nome_memo_str = ""
     secao_memo = None
     if cod_busca:
         # Busca prioritariamente na pasta onde o relatório da secretaria está
         arq_memo = localizar_memorando(cod_busca, caminho_secretaria.parent)
         if arq_memo:
+            nome_memo_str = arq_memo.name
             print(f"\n[MEMORANDO] Localizado memorando de retificação: {arq_memo.name}")
             try:
                 texto_memo = extrair_texto_completo_memorando(arq_memo)
-                dados_memo = extrair_itens_memorando(texto_memo)
+                dados_memo = extrair_itens_memorando(texto_memo, caminho_pdf=arq_memo)
                 res_conf = conferir_memorando_com_solicitacoes(dados_memo, retificacoes)
                 secao_memo = gerar_secao_memorando_markdown(res_conf, dados_memo, arq_memo.name)
+                itens_atendidos_memo = res_conf.get("atendidas", [])
                 print(f"  -> Itens lidos no memorando: {len(dados_memo['itens'])}")
                 print(f"  -> Atendidas/Regularizadas: {len(res_conf['atendidas'])}")
                 if res_conf['divergencias_memo']:
@@ -446,13 +450,20 @@ def processar_par(caminho_secretaria, caminho_sistema, ano_mes=None, desligados=
         print("[INFO] Nenhuma retificação necessária (100% de conformidade!).")
 
     # 7. Gerar relatório de monitoramento de atrasos e faltas acumuladas
-    dados_monit = apurar_dados_monitoramento(regs_sec, regs_sis)
-    if dados_monit["atrasos"] or dados_monit["faltas"]:
+    # Baixa e substitui as ocorrências que foram regularizadas pelo memorando
+    from monitoring import aplicar_retificacoes_memorando
+    regs_sec_monit, regularizados = aplicar_retificacoes_memorando(
+        regs_sec, itens_atendidos_memo, nome_memorando=nome_memo_str
+    )
+    dados_monit = apurar_dados_monitoramento(regs_sec_monit, regs_sis, regularizados=regularizados)
+    if dados_monit["atrasos"] or dados_monit["faltas"] or dados_monit.get("regularizados"):
         caminho_monit_md = dir_monitoramento / f"monitoramento_{nome_saida}.md"
         gerar_markdown_monitoramento(dados_monit, str(caminho_monit_md), mes_label, nome_orgao=nome_orgao)
         print(f"[OK] Monitoramento Markdown: {caminho_monit_md.relative_to(BASE_DIR)}")
 
         caminho_monit_xlsx = dir_monitoramento / f"monitoramento_{nome_saida}.xlsx"
+        gerar_excel_monitoramento(dados_monit, str(caminho_monit_xlsx), mes_label, nome_orgao=nome_orgao)
+        print(f"[OK] Monitoramento Excel:    {caminho_monit_xlsx.relative_to(BASE_DIR)}")
         gerar_excel_monitoramento(dados_monit, str(caminho_monit_xlsx), mes_label, nome_orgao=nome_orgao)
         print(f"[OK] Monitoramento Excel:    {caminho_monit_xlsx.relative_to(BASE_DIR)}")
 

@@ -102,17 +102,98 @@ def extrair_texto_completo_memorando(caminho_pdf):
     return "\n\n".join(paginas_texto)
 
 
-def extrair_itens_memorando(texto):
+def extrair_tabelas_memorando(caminho_pdf):
+    """Extrai itens estruturados de tabelas em PDFs de memorando (suporta células mescladas verticalmente)."""
+    itens = []
+    if not caminho_pdf:
+        return itens
+    try:
+        with pdfplumber.open(str(caminho_pdf)) as pdf:
+            for page in pdf.pages:
+                tables = page.extract_tables()
+                for table in tables:
+                    if not table or len(table) < 2:
+                        continue
+                    header = [str(c or "").upper() for c in table[0]]
+                    tem_func = any("FUNC" in h or "MATR" in h for h in header)
+                    tem_per = any("PER" in h or "DATA" in h for h in header)
+                    if not (tem_func or tem_per):
+                        continue
+
+                    col_mat = -1
+                    col_nome = -1
+                    col_oco = -1
+                    col_per = -1
+                    for idx, h in enumerate(header):
+                        if "FUNC" in h or "MATR" in h: col_mat = idx
+                        elif "SERV" in h or "NOME" in h: col_nome = idx
+                        elif "OCORR" in h or "EVENTO" in h: col_oco = idx
+                        elif "PER" in h or "DATA" in h: col_per = idx
+
+                    ult_mat = None
+                    ult_nome = None
+                    ult_oco = None
+
+                    for row in table[1:]:
+                        val_mat = row[col_mat] if col_mat >= 0 and col_mat < len(row) else None
+                        val_nome = row[col_nome] if col_nome >= 0 and col_nome < len(row) else None
+                        val_oco = row[col_oco] if col_oco >= 0 and col_oco < len(row) else None
+                        val_per = row[col_per] if col_per >= 0 and col_per < len(row) else None
+
+                        if val_mat and re.search(r"\d", str(val_mat)):
+                            ult_mat = str(val_mat).strip()
+                        if val_nome and str(val_nome).strip():
+                            ult_nome = " ".join(str(val_nome).split())
+                        if val_oco and str(val_oco).strip():
+                            ult_oco = " ".join(str(val_oco).split())
+
+                        if not val_per:
+                            continue
+
+                        per_str = str(val_per).strip()
+                        datas = re.findall(r"(\d{2}/\d{2}/\d{4})", per_str)
+                        if not datas:
+                            continue
+                        d_ini = _parse_data(datas[0])
+                        d_fim = _parse_data(datas[1]) if len(datas) > 1 else d_ini
+
+                        if ult_mat:
+                            m_norm = normalizar_matricula(ult_mat)
+                            mat_fmt = f"{m_norm[:2]}.{m_norm[2:5]}-{m_norm[5:]}" if len(m_norm) == 6 else ult_mat
+                            dias = (d_fim - d_ini).days + 1 if d_ini and d_fim else 1
+                            itens.append({
+                                "matricula": mat_fmt,
+                                "matricula_norm": m_norm,
+                                "nome": ult_nome,
+                                "ocorrencia": ult_oco or "Não informada",
+                                "data_inicio": d_ini,
+                                "data_fim": d_fim,
+                                "dias": dias,
+                                "texto_original": f"{ult_mat} - {ult_nome} - {ult_oco} - {per_str}",
+                            })
+    except Exception:
+        pass
+    return itens
+
+
+def extrair_itens_memorando(texto, caminho_pdf=None):
     """
     Analisa o texto do memorando e extrai os itens retificados.
     Suporta múltiplos formatos:
+    - Formato estruturado / tabela (com extração visual direta de tabelas e células mescladas)
     - Formato narrativo (parágrafos com 'Onde consta-se ... adicionar/alterar para ...')
-    - Formato estruturado / tabela / tópicos (linhas com matrícula, nome, datas e evento)
+    - Formato em tópicos (linhas com matrícula, nome, datas e evento)
     """
     itens = []
-    
-    # 1. Identificação do cabeçalho do memorando (número do memo e processo)
-    memo_num = None
+
+    # Extrai primeiro por tabelas se o caminho do PDF estiver disponível
+    if caminho_pdf:
+        itens_tab = extrair_tabelas_memorando(caminho_pdf)
+        if itens_tab:
+            itens.extend(itens_tab)
+
+    chaves_existentes = {(it["matricula_norm"], it["data_inicio"], it["data_fim"]) for it in itens}
+
     # 1. Identificação do cabeçalho do memorando (número do memo e processo)
     memo_num = None
     m_num = re.search(r"Memorando\s+([A-Za-z0-9_/\.-]+\s+n[ºo\.]*\s*\d+/\d+)", texto, re.IGNORECASE)
@@ -219,16 +300,19 @@ def extrair_itens_memorando(texto):
                     nova_ocorrencia = oc.title()
                     break
 
-        itens.append({
-            "matricula": mat_formatada,
-            "matricula_norm": mat_norm,
-            "nome": nome,
-            "data_inicio": d_ini,
-            "data_fim": d_fim,
-            "dias": dias,
-            "ocorrencia": nova_ocorrencia.title() if nova_ocorrencia else "Ocorrência Retificada",
-            "texto_original": bloco_limpo,
-        })
+        chave = (mat_norm, d_ini, d_fim)
+        if chave not in chaves_existentes:
+            chaves_existentes.add(chave)
+            itens.append({
+                "matricula": mat_formatada,
+                "matricula_norm": mat_norm,
+                "nome": nome,
+                "data_inicio": d_ini,
+                "data_fim": d_fim,
+                "dias": dias,
+                "ocorrencia": nova_ocorrencia.title() if nova_ocorrencia else "Ocorrência Retificada",
+                "texto_original": bloco_limpo,
+            })
 
     return {
         "numero_memorando": memo_num,
@@ -290,7 +374,11 @@ def conferir_memorando_com_solicitacoes(dados_memorando, retificacoes_solicitada
                              ("falta" in oc_memo_norm and "falta" in tipo_sis_norm) or \
                              ("abono" in oc_memo_norm and "abono" in tipo_sis_norm)
 
-                if compativel and (item["data_inicio"] == sol["data_inicio"] and item["data_fim"] == sol["data_fim"]):
+                datas_exatas = (item["data_inicio"] == sol["data_inicio"] and item["data_fim"] == sol["data_fim"])
+                abrange_periodo = (item["data_inicio"] <= sol["data_inicio"] and item["data_fim"] >= sol["data_fim"])
+
+                if compativel and (datas_exatas or abrange_periodo):
+                    status_desc = "Atendido conforme solicitado" if datas_exatas else f"Atendido (Atestado do memo abrange o período: {item['data_inicio'].strftime('%d/%m/%Y')} a {item['data_fim'].strftime('%d/%m/%Y')})"
                     atendidas.append({
                         "matricula": sol["matricula"],
                         "nome": sol["nome"] or item["nome"],
@@ -298,14 +386,14 @@ def conferir_memorando_com_solicitacoes(dados_memorando, retificacoes_solicitada
                         "data_fim": sol["data_fim"],
                         "dias": sol["dias"],
                         "tipo_retificado": item["ocorrencia"],
-                        "status": "Atendido conforme solicitado",
+                        "status": status_desc,
                     })
                     solicitacoes_atendidas_ids.add(sol_id)
                     encontrou = True
                     break
                 else:
                     motivos = []
-                    if item["data_inicio"] != sol["data_inicio"] or item["data_fim"] != sol["data_fim"]:
+                    if not (datas_exatas or abrange_periodo):
                         motivos.append(f"Datas informadas no memo ({item['data_inicio'].strftime('%d/%m/%Y')} a {item['data_fim'].strftime('%d/%m/%Y')}) divergem da solicitação ({sol['data_inicio'].strftime('%d/%m/%Y')} a {sol['data_fim'].strftime('%d/%m/%Y')})")
                     if not compativel:
                         motivos.append(f"Ocorrência informada no memo ({item['ocorrencia']}) difere do sistema ({sol.get('tipo_sistema')})")

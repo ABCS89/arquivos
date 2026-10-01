@@ -102,6 +102,7 @@ def consolidar_monitoramento():
 
     linhas_atrasos = []
     linhas_faltas = []
+    linhas_regularizados = []
     linhas_resumo = []
 
     # Procura pastas mensais em output (ex: output/2026-08/monitoramento)
@@ -232,7 +233,48 @@ def consolidar_monitoramento():
             qtd_serv_mais_4_faltas = len(servs_mais_4_faltas)
             tot_dias_mais_4_faltas = sum(f["DiasFalta"] for f in servs_mais_4_faltas)
 
-            # 3. Ler Aba Resumo
+            # 3. Ler Aba Regularizados (Memorando)
+            nome_aba_reg = None
+            for s in wb.sheetnames:
+                if "regularizado" in s.lower():
+                    nome_aba_reg = s
+                    break
+
+            regularizados_desta_sec = []
+            if nome_aba_reg:
+                ws_reg = wb[nome_aba_reg]
+                for r in range(2, ws_reg.max_row + 1):
+                    mat = ws_reg.cell(row=r, column=1).value
+                    if not mat:
+                        continue
+                    nome = ws_reg.cell(row=r, column=2).value or ""
+                    oc_ant = ws_reg.cell(row=r, column=3).value or ""
+                    oc_nova = ws_reg.cell(row=r, column=4).value or ""
+                    dt_per = ws_reg.cell(row=r, column=5).value or ""
+                    memo = ws_reg.cell(row=r, column=6).value or ""
+                    status = ws_reg.cell(row=r, column=7).value or ""
+
+                    item_reg = {
+                        "AnoMes": mes_id,
+                        "MesReferencia": mes_id,
+                        "CodigoSecretaria": cod_sec,
+                        "Secretaria": sigla_sec,
+                        "NomeCompletoSecretaria": nome_sec,
+                        "OrgaoCompleto": f"{cod_sec} - {sigla_sec}" if cod_sec else sigla_sec,
+                        "Matricula": str(mat).strip(),
+                        "NomeServidor": str(nome).strip(),
+                        "OcorrenciaAnterior": str(oc_ant).strip(),
+                        "RetificadoPara": str(oc_nova).strip(),
+                        "DataPeriodo": str(dt_per).strip(),
+                        "MemorandoOrigem": str(memo).strip(),
+                        "SituacaoSistema": str(status).strip(),
+                    }
+                    linhas_regularizados.append(item_reg)
+                    regularizados_desta_sec.append(item_reg)
+
+            qtd_regularizados = len(regularizados_desta_sec)
+
+            # 4. Ler Aba Resumo
             mes_label = mes_id
             qtd_serv_atraso = len(atrasos_desta_sec)
             tot_minutos = sum(a["MinutosAcumulados"] for a in atrasos_desta_sec)
@@ -249,6 +291,8 @@ def consolidar_monitoramento():
                         a["MesReferencia"] = mes_label
                     for f in faltas_desta_sec:
                         f["MesReferencia"] = mes_label
+                    for reg_it in regularizados_desta_sec:
+                        reg_it["MesReferencia"] = mes_label
 
                 for row in range(3, ws_res.max_row + 1):
                     ind = str(ws_res.cell(row=row, column=1).value or "").strip().lower()
@@ -270,6 +314,9 @@ def consolidar_monitoramento():
                         m_dias = re.search(r"(\d+)", str(val))
                         if m_dias:
                             tot_dias_falta = int(m_dias.group(1))
+                    elif "regularizada" in ind:
+                        try: qtd_regularizados = int(val)
+                        except: pass
 
             linhas_resumo.append({
                 "AnoMes": mes_id,
@@ -288,6 +335,7 @@ def consolidar_monitoramento():
                 "TotalDiasFalta": tot_dias_falta,
                 "QtdServidoresMais4Faltas": qtd_serv_mais_4_faltas,
                 "TotalDiasMais4Faltas": tot_dias_mais_4_faltas,
+                "QtdRegularizadosMemorando": qtd_regularizados,
             })
 
     # Gravar Excel Consolidado
@@ -341,11 +389,26 @@ def consolidar_monitoramento():
         for col_idx in range(1, len(headers3) + 1):
             ws3.column_dimensions[get_column_letter(col_idx)].width = 22
 
+    # Aba 4: Fato_Regularizados
+    ws4 = wb_out.create_sheet("Fato_Regularizados")
+    if linhas_regularizados:
+        headers4 = list(linhas_regularizados[0].keys())
+        ws4.append(headers4)
+        for cel in ws4[1]:
+            cel.font = font_header
+            cel.fill = fill_header
+            cel.alignment = Alignment(horizontal="center")
+        for item in linhas_regularizados:
+            ws4.append(list(item.values()))
+        for col_idx in range(1, len(headers4) + 1):
+            ws4.column_dimensions[get_column_letter(col_idx)].width = 22
+
     wb_out.save(caminho_xlsx)
     print(f"\n[OK] Base consolidada salva em: {caminho_xlsx.relative_to(BASE_DIR)}")
     print(f"     -> Resumo Secretarias: {len(linhas_resumo)} linhas")
     print(f"     -> Fato Atrasos:       {len(linhas_atrasos)} registros de servidores")
     print(f"     -> Fato Faltas:        {len(linhas_faltas)} registros de servidores")
+    print(f"     -> Fato Regularizados: {len(linhas_regularizados)} registros regularizados")
 
     # Gravar CSVs individuais (caso o usuário queira importar CSV)
     import csv
@@ -362,11 +425,13 @@ def consolidar_monitoramento():
     salvar_csv(linhas_resumo, "resumo_secretarias.csv")
     salvar_csv(linhas_atrasos, "fato_atrasos.csv")
     salvar_csv(linhas_faltas, "fato_faltas.csv")
+    salvar_csv(linhas_regularizados, "fato_regularizados.csv")
 
     return {
         "resumo": len(linhas_resumo),
         "atrasos": len(linhas_atrasos),
         "faltas": len(linhas_faltas),
+        "regularizados": len(linhas_regularizados),
         "arquivo_excel": caminho_xlsx,
     }
 
