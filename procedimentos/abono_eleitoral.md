@@ -11,3 +11,4 @@ Treinamento 1º Turno (
 
 Treinamento 1º e 2º Turnos (
 
+1º turno: Providenciado  -- TREINAMENTO: INDEFERIDO, o documento nãoestá acompanhado da Declaração de Trabalhos Eleitorais (DTE) emitida pelaJustiça Eleitoral, conforme o art. 98 da Lei n. 9.504/1997 e o § 3ºdo art. 15 daResolução-TSE n. 23.751/2026.
